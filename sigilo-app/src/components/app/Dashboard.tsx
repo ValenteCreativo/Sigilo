@@ -87,6 +87,17 @@ const FingerprintIcon = () => (
   </svg>
 );
 
+const NetworkIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+    />
+  </svg>
+);
+
 // Generate session ID
 function generateSessionId(): string {
   return `SIG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -470,6 +481,74 @@ export function Dashboard({
             <Button variant="secondary" size="sm" disabled className="opacity-60">
               Trigger offline alert (coming soon)
             </Button>
+          </DashboardCard>
+
+          {/* Network & Resources Navigation */}
+          <DashboardCard title="Network & Resources" icon={<NetworkIcon />}>
+            <p className="text-sm text-sigilo-text-secondary mb-4">
+              Explore the Sigilo network, integrate as a node, or review operational security best practices.
+            </p>
+            <div className="space-y-2">
+              <a
+                href="/forum"
+                className="flex items-center justify-between p-3 bg-sigilo-surface/50 rounded-lg border border-sigilo-border/30 hover:bg-sigilo-surface hover:border-sigilo-teal/30 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sigilo-teal/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-sigilo-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-sigilo-text-primary">Encrypted Signal Forum</p>
+                    <p className="text-xs text-sigilo-text-muted">Browse anonymized reports network</p>
+                  </div>
+                </div>
+                <svg className="w-4 h-4 text-sigilo-text-muted group-hover:text-sigilo-teal transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+
+              <a
+                href="/integrate"
+                className="flex items-center justify-between p-3 bg-sigilo-surface/50 rounded-lg border border-sigilo-border/30 hover:bg-sigilo-surface hover:border-sigilo-teal/30 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-sigilo-text-primary">Integrate with Sigilo</p>
+                    <p className="text-xs text-sigilo-text-muted">Become a node in the network</p>
+                  </div>
+                </div>
+                <svg className="w-4 h-4 text-sigilo-text-muted group-hover:text-sigilo-teal transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+
+              <a
+                href="/safety"
+                className="flex items-center justify-between p-3 bg-sigilo-surface/50 rounded-lg border border-sigilo-border/30 hover:bg-sigilo-surface hover:border-amber-500/30 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-sigilo-text-primary">Safety & OPSEC</p>
+                    <p className="text-xs text-sigilo-text-muted">Operational security best practices</p>
+                  </div>
+                </div>
+                <svg className="w-4 h-4 text-sigilo-text-muted group-hover:text-amber-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </div>
           </DashboardCard>
         </div>
 
