@@ -1,5 +1,7 @@
 "use client";
 
+import { AppShell } from "@/components/app";
+
 const ChecklistItem = ({ children }: { children: React.ReactNode }) => (
   <li className="flex items-start gap-3 p-4 bg-sigilo-surface/50 rounded-lg border border-sigilo-border/30">
     <div className="flex-shrink-0 w-6 h-6 bg-sigilo-teal/20 rounded-full flex items-center justify-center mt-0.5">
@@ -37,8 +39,9 @@ const WarningBullet = ({ children }: { children: React.ReactNode }) => (
 
 export default function SafetyPage() {
   return (
-    <main className="min-h-screen bg-sigilo-bg">
-      <div className="max-w-3xl mx-auto px-4 py-16 space-y-12">
+    <AppShell title="Safety & OPSEC">
+      <main className="min-h-screen bg-sigilo-bg">
+        <div className="max-w-3xl mx-auto px-4 py-8 space-y-12">
         {/* Hero */}
         <header className="text-center space-y-4">
           <h1 className="text-4xl font-bold text-sigilo-text-primary">
@@ -301,7 +304,8 @@ export default function SafetyPage() {
             November 2025
           </p>
         </footer>
-      </div>
-    </main>
+        </div>
+      </main>
+    </AppShell>
   );
 }
