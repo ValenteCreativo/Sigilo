@@ -1,5 +1,7 @@
 "use client";
 
+import { AppShell } from "@/components/app";
+
 const CodeBlock = ({ code, language = "typescript" }: { code: string; language?: string }) => (
   <pre className="bg-sigilo-bg rounded-lg p-4 overflow-x-auto border border-sigilo-border/30">
     <code className="text-sm text-sigilo-text-secondary font-mono whitespace-pre">
@@ -49,8 +51,9 @@ const StepCard = ({
 
 export default function IntegratePage() {
   return (
-    <main className="min-h-screen bg-sigilo-bg">
-      <div className="max-w-4xl mx-auto px-4 py-16 space-y-16">
+    <AppShell title="Integrate">
+      <main className="min-h-screen bg-sigilo-bg">
+        <div className="max-w-4xl mx-auto px-4 py-8 space-y-16">
         {/* Hero */}
         <header className="text-center space-y-6">
           <h1 className="text-4xl font-bold text-sigilo-text-primary">
@@ -326,7 +329,8 @@ stream.onmessage = (event) => {
             Integration documentation v1.0 · Last updated November 2025
           </p>
         </footer>
-      </div>
-    </main>
+        </div>
+      </main>
+    </AppShell>
   );
 }
