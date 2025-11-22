@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { AppMode, Report } from "@/types";
-import { Calculator, Dashboard } from "@/components/app";
+import { Report } from "@/types";
+import { Calculator, Dashboard, AppShell } from "@/components/app";
 import { Modal, Button } from "@/components/ui";
+import { useAuth } from "@/contexts";
 
 export default function AppPage() {
-  // App state
-  const [mode, setMode] = useState<AppMode>("calculator");
-  const [pinSet, setPinSet] = useState(false);
-  const [storedPin, setStoredPin] = useState<string | null>(null);
+  const { isAuthenticated, isRoleVerified, hasPin, authenticate, createPin, lock, verifyRole } = useAuth();
+
+  // Local report state
   const [reports, setReports] = useState<Report[]>([]);
-  const [isRoleVerified, setIsRoleVerified] = useState(false);
 
   // Modal state
   const [showPinModal, setShowPinModal] = useState(false);
@@ -22,14 +21,14 @@ export default function AppPage() {
 
   // Handle unlock attempt from calculator
   const handleUnlockAttempt = useCallback(() => {
-    if (!pinSet) {
+    if (!hasPin) {
       setIsCreatingPin(true);
       setShowPinModal(true);
     } else {
       setIsCreatingPin(false);
       setShowPinModal(true);
     }
-  }, [pinSet]);
+  }, [hasPin]);
 
   // Handle PIN submission
   const handlePinSubmit = () => {
@@ -48,14 +47,11 @@ export default function AppPage() {
         return;
       }
 
-      setStoredPin(pinInput);
-      setPinSet(true);
-      setMode("dashboard");
+      createPin(pinInput);
       resetPinModal();
     } else {
       // Verifying existing PIN
-      if (pinInput === storedPin) {
-        setMode("dashboard");
+      if (authenticate(pinInput)) {
         resetPinModal();
       } else {
         setPinError("Incorrect PIN");
@@ -79,39 +75,32 @@ export default function AppPage() {
       ...reportData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-      status: "Stored", // Simulate successful storage
+      status: "Stored",
     };
     setReports((prev) => [newReport, ...prev]);
   };
 
-  // Handle role verification
-  const handleVerifyRole = () => {
-    // Simulate vLayer verification
-    setTimeout(() => {
-      setIsRoleVerified(true);
-    }, 500);
-  };
-
   // Handle lock
   const handleLock = () => {
-    setMode("calculator");
-    setIsRoleVerified(false);
+    lock();
   };
 
   return (
     <div className="min-h-screen bg-sigilo-bg">
-      {mode === "calculator" ? (
+      {!isAuthenticated ? (
         <div className="min-h-screen flex items-center justify-center p-4">
           <Calculator onUnlockAttempt={handleUnlockAttempt} />
         </div>
       ) : (
-        <Dashboard
-          reports={reports}
-          isRoleVerified={isRoleVerified}
-          onAddReport={handleAddReport}
-          onVerifyRole={handleVerifyRole}
-          onLock={handleLock}
-        />
+        <AppShell title="SIGILO">
+          <Dashboard
+            reports={reports}
+            isRoleVerified={isRoleVerified}
+            onAddReport={handleAddReport}
+            onVerifyRole={verifyRole}
+            onLock={handleLock}
+          />
+        </AppShell>
       )}
 
       {/* PIN Modal */}
