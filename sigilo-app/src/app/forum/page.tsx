@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import { Role, ReportStatus } from "@/lib/types";
 import { mockReports } from "@/lib/mockReports";
-import { ReportNetwork, ReportList, MethodPill } from "@/components/forum";
+import { ObsidianNetwork, ReportList, MethodPill } from "@/components/forum";
+import { AppShell } from "@/components/app";
 
 const METHODS = ["vLayer zkTLS", "Filecoin", "EVVM anchor", "Aztec (planned)"];
 
@@ -37,7 +38,8 @@ export default function ForumPage() {
   const statuses: (ReportStatus | "All")[] = ["All", "Pending", "Stored", "Verified"];
 
   return (
-    <main className="min-h-screen bg-sigilo-bg">
+    <AppShell title="Signal Forum">
+      <main className="min-h-screen bg-sigilo-bg">
       <div className="max-w-6xl mx-auto px-4 py-16 space-y-8">
         {/* Header */}
         <header className="text-center space-y-4">
@@ -158,7 +160,7 @@ export default function ForumPage() {
               </svg>
               Signal Network
             </h2>
-            <ReportNetwork
+            <ObsidianNetwork
               reports={filteredReports}
               selectedId={selectedId}
               onSelect={setSelectedId}
@@ -195,6 +197,7 @@ export default function ForumPage() {
           </p>
         </div>
       </div>
-    </main>
+      </main>
+    </AppShell>
   );
 }
