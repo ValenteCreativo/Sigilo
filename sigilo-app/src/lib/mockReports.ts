@@ -1,0 +1,148 @@
+import { Report } from "./types";
+
+export const mockReports: Report[] = [
+  {
+    id: "sig_01HZX5A1B2C3D4E5F6G7H8I9J0",
+    role: "Journalist",
+    description:
+      "Documentation of irregularities in municipal contract awards. Evidence includes internal communications and financial records showing preferential treatment to connected vendors.",
+    status: "Verified",
+    cid: "bafybeigd7xk2z3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6",
+    createdAt: "2025-11-20T14:32:00.000Z",
+    location: "MX-CENTRO",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["corruption", "municipal", "contracts"],
+  },
+  {
+    id: "sig_02KLA6B3C4D5E6F7G8H9I0J1K2",
+    role: "Public official",
+    description:
+      "Internal audit findings suppressed by department leadership. Multiple instances of resource misallocation affecting public services in underserved communities.",
+    status: "Stored",
+    cid: "bafybeiah8yl3z4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i7",
+    createdAt: "2025-11-19T09:15:00.000Z",
+    location: "CO-BOGOTA",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["audit", "suppression", "public-services"],
+  },
+  {
+    id: "sig_03MNB7C4D5E6F7G8H9I0J1K2L3",
+    role: "Citizen",
+    description:
+      "Witnessed intimidation tactics against community organizers. Multiple incidents documented with timestamps and approximate locations.",
+    status: "Pending",
+    cid: "bafybeibj9zm4a5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w7",
+    createdAt: "2025-11-21T22:45:00.000Z",
+    location: "BR-SAO-PAULO",
+    methods: ["vLayer zkTLS", "Filecoin"],
+    riskTags: ["intimidation", "community", "threats"],
+  },
+  {
+    id: "sig_04OPC8D5E6F7G8H9I0J1K2L3M4",
+    role: "Journalist",
+    description:
+      "Evidence of environmental violations by industrial facility. Water samples and satellite imagery analysis showing unreported contamination events.",
+    status: "Verified",
+    cid: "bafybeick0an5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w8",
+    createdAt: "2025-11-18T16:20:00.000Z",
+    location: "AR-BUENOS-AIRES",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["environmental", "contamination", "industry"],
+  },
+  {
+    id: "sig_05QRD9E6F7G8H9I0J1K2L3M4N5",
+    role: "Public official",
+    description:
+      "Documentation of systematic failures in emergency response protocols. Internal communications reveal awareness of risks that were not addressed.",
+    status: "Stored",
+    cid: "bafybeildl1bo6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w9",
+    createdAt: "2025-11-17T11:30:00.000Z",
+    location: "CL-SANTIAGO",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["emergency", "protocols", "negligence"],
+  },
+  {
+    id: "sig_06STE0F7G8H9I0J1K2L3M4N5O6",
+    role: "Citizen",
+    description:
+      "Observations of irregular voting procedures during local election. Multiple polling stations affected with similar patterns.",
+    status: "Pending",
+    cid: "bafybeiemm2cp7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w0",
+    createdAt: "2025-11-16T08:00:00.000Z",
+    location: "PE-LIMA",
+    methods: ["vLayer zkTLS", "Filecoin"],
+    riskTags: ["election", "irregularities", "voting"],
+  },
+  {
+    id: "sig_07UVF1G8H9I0J1K2L3M4N5O6P7",
+    role: "Journalist",
+    description:
+      "Investigation into undisclosed financial relationships between regulatory officials and regulated entities. Document trail spanning multiple years.",
+    status: "Verified",
+    cid: "bafybeifnn3dq8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w1",
+    createdAt: "2025-11-15T19:45:00.000Z",
+    location: "MX-NORTE",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["regulatory", "conflicts", "financial"],
+  },
+  {
+    id: "sig_08WXG2H9I0J1K2L3M4N5O6P7Q8",
+    role: "Public official",
+    description:
+      "Internal memo revealing pressure to alter technical reports on infrastructure safety. Original assessments contradicted by final published versions.",
+    status: "Stored",
+    cid: "bafybeigoo4er9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w2",
+    createdAt: "2025-11-14T13:10:00.000Z",
+    location: "EC-QUITO",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["infrastructure", "safety", "falsification"],
+  },
+  {
+    id: "sig_09YZH3I0J1K2L3M4N5O6P7Q8R9",
+    role: "Citizen",
+    description:
+      "Healthcare facility denying services based on demographic factors. Pattern observed over multiple visits with documentation of refusals.",
+    status: "Pending",
+    cid: "bafybeihpp5fs0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w3",
+    createdAt: "2025-11-13T07:25:00.000Z",
+    location: "VE-CARACAS",
+    methods: ["vLayer zkTLS", "Filecoin"],
+    riskTags: ["healthcare", "discrimination", "access"],
+  },
+  {
+    id: "sig_10ABI4J1K2L3M4N5O6P7Q8R9S0",
+    role: "Journalist",
+    description:
+      "Surveillance equipment deployment in public spaces without legal authorization. Technical analysis and procurement records obtained.",
+    status: "Stored",
+    cid: "bafybeiiqqg6t1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w4",
+    createdAt: "2025-11-12T21:55:00.000Z",
+    location: "CO-MEDELLIN",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["surveillance", "privacy", "unauthorized"],
+  },
+  {
+    id: "sig_11CDJ5K2L3M4N5O6P7Q8R9S0T1",
+    role: "Public official",
+    description:
+      "Budget allocations diverted from education programs to undisclosed accounts. Financial trail documented through official systems.",
+    status: "Verified",
+    cid: "bafybeijrrh7u2i3j4k5l6m7n8o9p0q1r2s3t4u5v6w5",
+    createdAt: "2025-11-11T15:40:00.000Z",
+    location: "GT-GUATEMALA",
+    methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+    riskTags: ["education", "budget", "diversion"],
+  },
+  {
+    id: "sig_12EFK6L3M4N5O6P7Q8R9S0T1U2",
+    role: "Citizen",
+    description:
+      "Labor violations at manufacturing facility including safety hazards and wage theft. Workers fear retaliation for speaking out.",
+    status: "Pending",
+    cid: "bafybeikss8iv3j4k5l6m7n8o9p0q1r2s3t4u5v6w6",
+    createdAt: "2025-11-10T10:15:00.000Z",
+    location: "HN-TEGUCIGALPA",
+    methods: ["vLayer zkTLS", "Filecoin"],
+    riskTags: ["labor", "safety", "wages"],
+  },
+];
