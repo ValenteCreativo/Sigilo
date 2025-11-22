@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "SIGILO - Anonymous Whistleblowing",
@@ -30,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-sigilo-bg text-sigilo-text-primary min-h-screen">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
