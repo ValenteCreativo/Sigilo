@@ -42,7 +42,6 @@ export default function AppPage() {
     if (isEmergencyActive) return;
 
     setIsEmergencyActive(true);
-    const emergencyMessage = "EMERGENCY:HELP IM IN DANGER";
 
     if (ggwaveLoading) {
       setIsEmergencyActive(false);
@@ -56,25 +55,51 @@ export default function AppPage() {
     }
 
     try {
+      // Request location permission and get coordinates
+      let locationString = "HELP IM IN DANGER";
+
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          });
+
+          const lat = position.coords.latitude.toFixed(5);
+          const lng = position.coords.longitude.toFixed(5);
+          locationString = `${lat},${lng}`;
+        } catch (geoError) {
+          console.warn("Could not get location:", geoError);
+          // Continue without location
+        }
+      }
+
+      const emergencyMessage = `EMERGENCY:${locationString}`;
+      console.log("Sending emergency signal:", emergencyMessage);
+
       // Initialize ggwave if needed
       if (!ggwaveRef.current) {
         ggwaveRef.current = await initGgwave();
       }
 
-      // Encode and play emergency signal via ultrasound
-      const samples = ggwaveRef.current.sendMessageToPCM(emergencyMessage, "ultrasonic");
-      await playPCM(samples, ggwaveRef.current.getSampleRate());
+      // Encode and play emergency signal via AUDIBLE (more reliable than ultrasonic)
+      const samples = ggwaveRef.current.sendMessageToPCM(emergencyMessage, "audible");
 
-      // Play it multiple times for redundancy
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await playPCM(samples, ggwaveRef.current.getSampleRate());
+      // Play it multiple times for redundancy with loop
+      for (let i = 0; i < 3; i++) {
+        await playPCM(samples, ggwaveRef.current.getSampleRate());
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
 
     } catch (error) {
       console.error("Emergency signal failed:", error);
     } finally {
       setIsEmergencyActive(false);
     }
-  }, [isEmergencyActive]);
+  }, [isEmergencyActive, ggwaveLoading, ggwaveError]);
 
   // Handle PIN submission
   const handlePinSubmit = () => {

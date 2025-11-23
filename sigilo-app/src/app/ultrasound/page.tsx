@@ -1,11 +1,46 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { GgwaveTransmitter, GgwaveReceiver } from "@/components/ultrasound";
 import { AppShell } from "@/components/app";
+import { WalletPanel } from "@/components/wallet";
 
 export default function UltrasoundPage() {
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{lat: number; lng: number} | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Watch location when enabled
+  useEffect(() => {
+    if (!locationEnabled) {
+      setCurrentLocation(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation not supported");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setCurrentLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationError(null);
+      },
+      (error) => {
+        setLocationError(error.message);
+      },
+      { enableHighAccuracy: true }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [locationEnabled]);
+
   return (
-    <AppShell title="Ultrasonic Signal">
+    <AppShell title="Signal Transmission">
       <main className="min-h-screen bg-sigilo-bg">
         <div className="max-w-5xl mx-auto px-4 py-16 space-y-10">
           {/* Header */}
@@ -26,11 +61,11 @@ export default function UltrasoundPage() {
               </svg>
             </div>
             <h1 className="text-4xl font-bold text-sigilo-text-primary">
-              Ultrasonic Signal Demo
+              Sound-Based Signal Demo
             </h1>
             <p className="text-sigilo-text-secondary max-w-2xl mx-auto">
-              Send a short encrypted signal from one device using sound and let
-              another device decode it and trigger a simulated transaction.
+              Send a short encrypted signal from one device using sound (ultrasonic or audible)
+              and let another device decode it and trigger a transaction.
             </p>
 
             {/* Tech badges */}
@@ -39,7 +74,7 @@ export default function UltrasoundPage() {
                 ggwave FSK
               </span>
               <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-medium text-blue-400">
-                Ultrasonic (18-20 kHz)
+                Ultrasonic + Audible
               </span>
               <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full text-xs font-medium text-purple-400">
                 Web Audio API
@@ -47,6 +82,46 @@ export default function UltrasoundPage() {
               <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-medium text-amber-400">
                 EVVM Integration
               </span>
+            </div>
+
+            {/* Location Tracking Toggle */}
+            <div className="flex flex-col items-center gap-3 pt-6">
+              <div className="flex items-center gap-3">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={locationEnabled}
+                    onChange={(e) => setLocationEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-sigilo-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sigilo-red"></div>
+                </label>
+                <span className="text-sm font-medium text-sigilo-text-primary flex items-center gap-2">
+                  <svg className="w-4 h-4 text-sigilo-red" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Location Tracking (Emergency)
+                </span>
+              </div>
+
+              {locationEnabled && (
+                <div className="text-xs text-sigilo-text-muted bg-sigilo-surface/50 px-4 py-2 rounded-lg border border-sigilo-border/30">
+                  {locationError ? (
+                    <span className="text-sigilo-red">{locationError}</span>
+                  ) : currentLocation ? (
+                    <span className="font-mono">
+                      📍 {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+                    </span>
+                  ) : (
+                    <span>Acquiring location...</span>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-sigilo-text-muted/70 max-w-md">
+                When enabled, emergency signals will include your GPS coordinates for rescue teams.
+              </p>
             </div>
           </header>
 
@@ -111,6 +186,29 @@ export default function UltrasoundPage() {
             </div>
           </section>
 
+          {/* Wallet Panel */}
+          <section>
+            <h2 className="text-sm font-medium text-sigilo-text-muted mb-3 flex items-center gap-2">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              EVVM Blockchain
+            </h2>
+            <div className="max-w-md mx-auto">
+              <WalletPanel />
+            </div>
+          </section>
+
           {/* Main panels */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Transmitter */}
@@ -131,7 +229,7 @@ export default function UltrasoundPage() {
                 </svg>
                 Phone / Sender
               </h2>
-              <GgwaveTransmitter />
+              <GgwaveTransmitter location={currentLocation} />
             </div>
 
             {/* Receiver */}

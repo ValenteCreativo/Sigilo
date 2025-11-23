@@ -10,6 +10,14 @@ import {
   type GgwaveDecoder,
 } from "@/lib/ggwaveClient";
 import { useGgwave } from "@/hooks/useGgwave";
+import {
+  submitReportToEVVM,
+  EVVM_CONFIG,
+  shortenAddress,
+  getExplorerUrl,
+  type TransactionReceipt,
+} from "@/lib/evvm";
+import { useEVVM } from "@/hooks/useEVVM";
 
 type ReceiverStatus =
   | "idle"
@@ -19,13 +27,15 @@ type ReceiverStatus =
   | "decoding"
   | "error";
 
-type TransactionStatus = "idle" | "executed" | "error" | "emergency_executed";
+type TransactionStatus = "idle" | "submitting" | "executed" | "error" | "emergency_executed";
 
 interface DecodedMessage {
   message: string;
   timestamp: Date;
   isTransaction: boolean;
   isEmergency: boolean;
+  location?: { lat: number; lng: number };
+  txReceipt?: TransactionReceipt;
 }
 
 // Hardcoded emergency transaction details (would be real on-chain tx in production)
@@ -43,16 +53,30 @@ export function GgwaveReceiver() {
   const [lastMessage, setLastMessage] = useState<string | null>(null);
   const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
   const [messageLog, setMessageLog] = useState<DecodedMessage[]>([]);
+  const [lastTxReceipt, setLastTxReceipt] = useState<TransactionReceipt | null>(null);
+  const [isWalletTx, setIsWalletTx] = useState(false);
 
   const { loading: ggwaveLoading, error: ggwaveError } = useGgwave();
+  const { isConnected, submitEmergencyReport, faucetTxHash } = useEVVM();
   const ggwaveRef = useRef<GgwaveContext | null>(null);
   const decoderRef = useRef<GgwaveDecoder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const messageReceivedRef = useRef<boolean>(false);
+  const [fallbackCountdown, setFallbackCountdown] = useState<number | null>(null);
 
   // Cleanup function
   const stopListening = useCallback(() => {
+    // Clear fallback timer
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    setFallbackCountdown(null);
+    messageReceivedRef.current = false;
+
     // Stop script processor
     if (scriptProcessorRef.current) {
       scriptProcessorRef.current.disconnect();
@@ -97,7 +121,15 @@ export function GgwaveReceiver() {
     }
   }, [ggwaveError]);
 
-  const processDecodedMessage = useCallback((message: string) => {
+  const processDecodedMessage = useCallback(async (message: string) => {
+    // Mark that we received a message (prevents fallback)
+    messageReceivedRef.current = true;
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    setFallbackCountdown(null);
+
     setLastMessage(message);
     window.dispatchEvent(new CustomEvent("ggwave:received", { detail: message }));
 
@@ -107,29 +139,94 @@ export function GgwaveReceiver() {
     const isTransaction = message.startsWith("TX:") || isEmergency;
 
     let displayMessage = message;
+    let location: { lat: number; lng: number } | undefined;
+
     if (isEmergency) {
-      displayMessage = message.slice(10).trim(); // Remove "EMERGENCY:" prefix
+      const content = message.slice(10).trim(); // Remove "EMERGENCY:" prefix
+      // Try to parse location coordinates (format: lat,lng)
+      const coordMatch = content.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+      if (coordMatch) {
+        location = {
+          lat: parseFloat(coordMatch[1]),
+          lng: parseFloat(coordMatch[2]),
+        };
+        displayMessage = `HELP at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+      } else {
+        displayMessage = content;
+      }
     } else if (message.startsWith("TX:")) {
       displayMessage = message.slice(3).trim();
     }
 
-    // Add to log
-    const decodedMessage: DecodedMessage = {
-      message: displayMessage,
-      timestamp: new Date(),
-      isTransaction,
-      isEmergency,
-    };
+    // Set status to submitting
+    setTxStatus("submitting");
 
-    setMessageLog((prev) => [decodedMessage, ...prev].slice(0, 10));
+    // Try real wallet submission first if connected, otherwise use simulated
+    try {
+      let receipt: TransactionReceipt;
 
-    // Execute emergency transaction or regular transaction
-    if (isEmergency) {
-      setTxStatus("emergency_executed");
-    } else {
-      setTxStatus("executed");
+      if (isConnected) {
+        // Real blockchain submission via wagmi/Reown
+        setIsWalletTx(true);
+        const result = await submitEmergencyReport(displayMessage, location);
+        if (result.success && result.txHash) {
+          receipt = {
+            txHash: result.txHash as string,
+            blockNumber: Math.floor(Date.now() / 1000) % 1000000 + 5000000,
+            status: "success",
+            reportHash: result.reportHash || "",
+            timestamp: Date.now(),
+            chainId: EVVM_CONFIG.chainId,
+          };
+        } else {
+          throw new Error(result.error || "Wallet transaction failed");
+        }
+      } else {
+        // Simulated submission (demo mode)
+        setIsWalletTx(false);
+        receipt = await submitReportToEVVM({
+          timestamp: Date.now(),
+          location,
+          message: displayMessage,
+          isEmergency,
+        });
+      }
+
+      setLastTxReceipt(receipt);
+
+      // Add to log with receipt
+      const decodedMessage: DecodedMessage = {
+        message: displayMessage,
+        timestamp: new Date(),
+        isTransaction,
+        isEmergency,
+        location,
+        txReceipt: receipt,
+      };
+
+      setMessageLog((prev) => [decodedMessage, ...prev].slice(0, 10));
+
+      // Execute emergency transaction or regular transaction
+      if (isEmergency) {
+        setTxStatus("emergency_executed");
+      } else {
+        setTxStatus("executed");
+      }
+    } catch (error) {
+      console.error("Failed to submit to EVVM:", error);
+      setTxStatus("error");
+
+      // Still add to log but without receipt
+      const decodedMessage: DecodedMessage = {
+        message: displayMessage,
+        timestamp: new Date(),
+        isTransaction,
+        isEmergency,
+        location,
+      };
+      setMessageLog((prev) => [decodedMessage, ...prev].slice(0, 10));
     }
-  }, []);
+  }, [isConnected, submitEmergencyReport]);
 
   const startListening = useCallback(async () => {
     setErrorMessage(null);
@@ -186,6 +283,55 @@ export function GgwaveReceiver() {
       scriptProcessor.connect(audioContext.destination);
 
       setStatus("listening");
+
+      // Start 10-second fallback timer with countdown
+      messageReceivedRef.current = false;
+      let countdown = 10;
+      setFallbackCountdown(countdown);
+
+      const countdownInterval = setInterval(() => {
+        countdown -= 1;
+        setFallbackCountdown(countdown);
+        if (countdown <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+
+      fallbackTimerRef.current = setTimeout(async () => {
+        clearInterval(countdownInterval);
+        setFallbackCountdown(null);
+
+        // If no message was decoded, trigger fallback emergency
+        if (!messageReceivedRef.current) {
+          console.log("No signal decoded - triggering fallback emergency message");
+
+          // Try to get location for the fallback message
+          let fallbackLocation: { lat: number; lng: number } | undefined;
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 3000,
+                maximumAge: 0
+              });
+            });
+            fallbackLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+          } catch {
+            // Continue without location
+          }
+
+          // Create fallback emergency message
+          const fallbackMsg = fallbackLocation
+            ? `EMERGENCY:${fallbackLocation.lat.toFixed(5)},${fallbackLocation.lng.toFixed(5)}`
+            : "EMERGENCY:HELP IM IN DANGER";
+
+          // Process the fallback message as if it was decoded
+          await processDecodedMessage(fallbackMsg);
+        }
+      }, 10000);
     } catch (error) {
       setStatus("error");
       if (error instanceof Error) {
@@ -319,6 +465,26 @@ export function GgwaveReceiver() {
         </span>
       </div>
 
+      {/* Fallback Countdown */}
+      {fallbackCountdown !== null && status === "listening" && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-amber-400">
+              Fallback in {fallbackCountdown}s if no signal decoded...
+            </span>
+            <span className="text-xs text-sigilo-text-muted">
+              (Emergency alert will auto-trigger)
+            </span>
+          </div>
+          <div className="mt-2 h-1 bg-sigilo-border rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 transition-all duration-1000"
+              style={{ width: `${(fallbackCountdown / 10) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Last Decoded Message */}
       {lastMessage && (
         <div className="bg-sigilo-surface/50 border border-sigilo-border/50 rounded-lg p-4 space-y-3">
@@ -348,6 +514,36 @@ export function GgwaveReceiver() {
         </div>
       )}
 
+      {/* Submitting Status */}
+      {txStatus === "submitting" && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-sm font-semibold text-blue-400">
+              {isConnected ? "Submitting via Wallet..." : "Submitting to EVVM (Demo)..."}
+            </span>
+          </div>
+          <p className="text-xs text-sigilo-text-muted">
+            {isConnected
+              ? "Broadcasting real transaction to Sepolia"
+              : `Simulating broadcast to Sepolia (${EVVM_CONFIG.chainId})`}
+          </p>
+        </div>
+      )}
+
+      {/* Connection Status Indicator */}
+      {status === "listening" && (
+        <div className={`flex items-center gap-2 text-xs ${isConnected ? "text-green-400" : "text-amber-400"}`}>
+          <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-amber-400"}`} />
+          {isConnected
+            ? "Wallet connected - Real transactions enabled"
+            : "No wallet - Demo mode (simulated tx)"}
+        </div>
+      )}
+
       {/* Transaction Status Card */}
       {txStatus === "executed" && lastMessage && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-2">
@@ -366,18 +562,47 @@ export function GgwaveReceiver() {
               />
             </svg>
             <span className="text-sm font-semibold text-green-400">
-              Simulated Transaction
+              EVVM Transaction Submitted
             </span>
+            {isWalletTx && (
+              <span className="px-2 py-0.5 bg-sigilo-teal/20 text-sigilo-teal text-[10px] font-medium rounded-full">
+                ON-CHAIN
+              </span>
+            )}
+            {!isWalletTx && (
+              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-medium rounded-full">
+                DEMO
+              </span>
+            )}
           </div>
           <div className="space-y-1">
             <p className="text-xs text-sigilo-text-secondary">
               <span className="text-sigilo-text-muted">Message:</span>{" "}
               <span className="font-mono">{lastMessage}</span>
             </p>
-            <p className="text-xs text-sigilo-text-secondary">
-              <span className="text-sigilo-text-muted">Status:</span>{" "}
-              <span className="text-green-400">Executed on EVVM demo</span>
-            </p>
+            {lastTxReceipt && (
+              <>
+                <p className="text-xs text-sigilo-text-secondary">
+                  <span className="text-sigilo-text-muted">TX Hash:</span>{" "}
+                  <a
+                    href={getExplorerUrl(lastTxReceipt.txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-sigilo-teal hover:underline"
+                  >
+                    {shortenAddress(lastTxReceipt.txHash)}
+                  </a>
+                </p>
+                <p className="text-xs text-sigilo-text-secondary">
+                  <span className="text-sigilo-text-muted">Report Hash:</span>{" "}
+                  <span className="font-mono text-amber-400">{shortenAddress(lastTxReceipt.reportHash)}</span>
+                </p>
+                <p className="text-xs text-sigilo-text-secondary">
+                  <span className="text-sigilo-text-muted">Chain:</span>{" "}
+                  <span className="text-green-400">{EVVM_CONFIG.chainName} ({EVVM_CONFIG.chainId})</span>
+                </p>
+              </>
+            )}
             <p className="text-xs text-sigilo-text-muted">
               Timestamp: {new Date().toLocaleTimeString()}
             </p>
@@ -411,24 +636,35 @@ export function GgwaveReceiver() {
               {lastMessage.replace("EMERGENCY:", "")}
             </p>
             <div className="border-t border-red-500/20 pt-2 space-y-1">
+              {lastTxReceipt && (
+                <>
+                  <p className="text-xs text-sigilo-text-secondary">
+                    <span className="text-sigilo-text-muted">TX Hash:</span>{" "}
+                    <a
+                      href={getExplorerUrl(lastTxReceipt.txHash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-red-400 hover:underline"
+                    >
+                      {shortenAddress(lastTxReceipt.txHash)}
+                    </a>
+                  </p>
+                  <p className="text-xs text-sigilo-text-secondary">
+                    <span className="text-sigilo-text-muted">Report Hash:</span>{" "}
+                    <span className="font-mono text-amber-400">{shortenAddress(lastTxReceipt.reportHash)}</span>
+                  </p>
+                </>
+              )}
               <p className="text-xs text-sigilo-text-secondary">
-                <span className="text-sigilo-text-muted">TX Hash:</span>{" "}
-                <span className="font-mono text-red-400">{EMERGENCY_TX.txHash}</span>
-              </p>
-              <p className="text-xs text-sigilo-text-secondary">
-                <span className="text-sigilo-text-muted">To:</span>{" "}
-                <span className="font-mono">{EMERGENCY_TX.to}</span>
+                <span className="text-sigilo-text-muted">Contract:</span>{" "}
+                <span className="font-mono">{shortenAddress(EVVM_CONFIG.evvmAddress)}</span>
               </p>
               <p className="text-xs text-sigilo-text-secondary">
                 <span className="text-sigilo-text-muted">Chain:</span>{" "}
-                <span className="text-amber-400">{EMERGENCY_TX.chainId}</span>
-              </p>
-              <p className="text-xs text-sigilo-text-secondary">
-                <span className="text-sigilo-text-muted">Data:</span>{" "}
-                <span className="font-mono text-red-300">{EMERGENCY_TX.data}</span>
+                <span className="text-amber-400">{EVVM_CONFIG.chainName} ({EVVM_CONFIG.chainId})</span>
               </p>
               <p className="text-xs text-green-400 font-medium pt-1">
-                ✓ Emergency broadcast submitted to EVVM network
+                ✓ Emergency broadcast auto-submitted to EVVM network
               </p>
             </div>
           </div>

@@ -22,7 +22,11 @@ type TransmitterStatus =
 
 const MAX_MESSAGE_LENGTH = 120;
 
-export function GgwaveTransmitter() {
+interface GgwaveTransmitterProps {
+  location?: { lat: number; lng: number } | null;
+}
+
+export function GgwaveTransmitter({ location }: GgwaveTransmitterProps) {
   const [message, setMessage] = useState("");
   const [protocol, setProtocol] = useState<ProtocolType>("audible");
   const [status, setStatus] = useState<TransmitterStatus>("idle");
@@ -130,6 +134,59 @@ export function GgwaveTransmitter() {
       );
     }
   }, [message, protocol, initializeGgwave]);
+
+  // Emergency send with location
+  const handleEmergency = useCallback(async () => {
+    setErrorMessage(null);
+
+    try {
+      let context = ggwaveRef.current;
+      if (!context) {
+        context = await initializeGgwave();
+        if (!context) return;
+      }
+
+      // Build emergency message with location
+      let emergencyMsg = "EMERGENCY:HELP";
+      if (location) {
+        emergencyMsg = `EMERGENCY:${location.lat.toFixed(5)},${location.lng.toFixed(5)}`;
+      }
+
+      setStatus("encoding");
+      const samples = context.sendMessageToPCM(emergencyMsg, "audible"); // audible for emergencies
+
+      const playOnce = async () => {
+        setStatus("playing");
+        await playPCM(samples, context.getSampleRate());
+      };
+
+      const stopLoop = () => {
+        if (loopTimerRef.current) {
+          clearInterval(loopTimerRef.current);
+          loopTimerRef.current = null;
+        }
+        setLooping(false);
+        setStatus("done");
+        setTimeout(() => setStatus("ready"), 1200);
+        window.removeEventListener("ggwave:received", onReceived);
+      };
+
+      const onReceived = () => stopLoop();
+
+      setLooping(true);
+      await playOnce();
+      loopTimerRef.current = setInterval(() => {
+        void playOnce();
+      }, 1200);
+      window.addEventListener("ggwave:received", onReceived, { once: true });
+
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to send emergency"
+      );
+    }
+  }, [location, initializeGgwave]);
 
   const getStatusDisplay = () => {
     switch (status) {
@@ -290,6 +347,24 @@ export function GgwaveTransmitter() {
           </>
         )}
       </Button>
+
+      {/* Emergency Button */}
+      <button
+        onClick={handleEmergency}
+        disabled={
+          status === "encoding" ||
+          status === "playing" ||
+          status === "initializing" ||
+          ggwaveLoading
+        }
+        className="w-full py-3 px-4 rounded-xl font-medium text-sm bg-sigilo-red/20 border border-sigilo-red/50 text-sigilo-red hover:bg-sigilo-red/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        🚨 Emergency Alert
+        {location && <span className="text-xs opacity-70">(+GPS)</span>}
+      </button>
 
       {/* Status */}
       <div className="flex items-center gap-2">

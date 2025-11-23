@@ -198,8 +198,8 @@ export function Calculator({ onUnlockAttempt, onEmergency }: CalculatorProps) {
         })}
       </div>
 
-      {/* Subtle hint - very hidden */}
-      <p className="text-center text-[10px] text-sigilo-text-muted/30 mt-4 select-none">
+      {/* Version hint only - no emergency disclosure */}
+      <p className="mt-4 text-center text-[10px] text-sigilo-text-muted/30 select-none">
         Calculator v1.0
       </p>
     </div>
