@@ -47,7 +47,11 @@ const EMERGENCY_TX = {
   txHash: "0xemergency" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 6),
 };
 
-export function GgwaveReceiver() {
+interface GgwaveReceiverProps {
+  location?: { lat: number; lng: number } | null;
+}
+
+export function GgwaveReceiver({ location }: GgwaveReceiverProps) {
   const [status, setStatus] = useState<ReceiverStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
@@ -295,17 +299,21 @@ export function GgwaveReceiver() {
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
           let coordsText = "";
 
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 2000,
-                maximumAge: 0,
+          if (location) {
+            coordsText = `${location.lat.toFixed(5)},${location.lng.toFixed(5)}`;
+          } else {
+            try {
+              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  enableHighAccuracy: true,
+                  timeout: 2000,
+                  maximumAge: 0,
+                });
               });
-            });
-            coordsText = `${position.coords.latitude.toFixed(5)},${position.coords.longitude.toFixed(5)}`;
-          } catch {
-            coordsText = "unknown_coords";
+              coordsText = `${position.coords.latitude.toFixed(5)},${position.coords.longitude.toFixed(5)}`;
+            } catch {
+              coordsText = "unknown_coords";
+            }
           }
 
           const timestamp = now.toLocaleString(undefined, { timeZone: timezone });

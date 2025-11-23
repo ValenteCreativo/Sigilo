@@ -226,7 +226,7 @@ export default function UltrasoundPage() {
                 </svg>
                 Laptop / Receiver
               </h2>
-              <GgwaveReceiver />
+              <GgwaveReceiver location={currentLocation} />
             </div>
           </div>
 
