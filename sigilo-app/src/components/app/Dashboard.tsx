@@ -611,18 +611,6 @@ export function Dashboard({
             </ul>
           </DashboardCard>
 
-          {/* Emergency Mode Card */}
-          <DashboardCard title="Emergency mode" icon={<AlertIcon />}>
-            <p className="text-sm text-sigilo-text-secondary mb-4">
-              When networks are blocked or compromised, Sigilo&apos;s emergency mode will
-              use offline acoustic signals and on-device voice models to propagate
-              alerts through nearby devices until they reach a safe node.
-            </p>
-            <Button variant="secondary" size="sm" disabled className="opacity-60">
-              Trigger offline alert (coming soon)
-            </Button>
-          </DashboardCard>
-
           {/* Network & Resources Navigation */}
           <DashboardCard title="Network & Resources" icon={<NetworkIcon />}>
             <p className="text-sm text-sigilo-text-secondary mb-4">
