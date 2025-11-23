@@ -64,7 +64,7 @@ export function Footer() {
 
         {/* Copyright */}
         <p className="text-xs text-sigilo-text-muted/50 mt-8">
-          © {new Date().getFullYear()} Sigilo. All rights reserved.
+          © {new Date().getFullYear()} Sigilo. All rights reserved. From México with 🩵
         </p>
       </div>
     </footer>

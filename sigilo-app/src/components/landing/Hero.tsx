@@ -134,7 +134,7 @@ export function Hero() {
             <div className="flex flex-wrap gap-2 justify-center">
               <Badge variant="info" size="md">EVVM</Badge>
               <Badge variant="info" size="md">vLayer</Badge>
-              <Badge variant="info" size="md">Filecoin</Badge>
+              <Badge variant="info" size="md">Protocol Labs</Badge>
             </div>
             <p className="text-xs text-sigilo-text-muted">
               Private integrations:{" "}

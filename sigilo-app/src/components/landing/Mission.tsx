@@ -22,8 +22,8 @@ export function Mission() {
           </p>
 
           <p className="text-sigilo-teal font-medium">
-            Sigilo is not about headlines; it is about keeping people alive long
-            enough for the truth to matter.
+            Sigilo is not here to choose sides. It is here to make sure that
+            speaking up does not equal signing your own sentence.
           </p>
         </div>
 
