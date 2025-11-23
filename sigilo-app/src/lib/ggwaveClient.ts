@@ -8,16 +8,23 @@
 
 export type ProtocolType = "audible" | "ultrasonic";
 
-// CDN URL for ggwave
-const GGWAVE_CDN_URL = "https://cdn.jsdelivr.net/npm/ggwave@0.4.2/ggwave.js";
+// CDN URL for ggwave (0.4.0 is the latest available version)
+const GGWAVE_CDN_URL = "https://cdn.jsdelivr.net/npm/ggwave@0.4.0/ggwave.js";
 
-// Type definitions (since we're loading from CDN)
+// Type definitions matching emscripten bindings
 interface GgwaveModule {
   getDefaultParameters(): any;
   init(params: any): GgwaveInstance;
-  TxProtocolId: {
-    GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL: number;
-    GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL: number;
+  ProtocolId: {
+    GGWAVE_PROTOCOL_AUDIBLE_NORMAL: number;
+    GGWAVE_PROTOCOL_AUDIBLE_FAST: number;
+    GGWAVE_PROTOCOL_AUDIBLE_FASTEST: number;
+    GGWAVE_PROTOCOL_ULTRASOUND_NORMAL: number;
+    GGWAVE_PROTOCOL_ULTRASOUND_FAST: number;
+    GGWAVE_PROTOCOL_ULTRASOUND_FASTEST: number;
+    GGWAVE_PROTOCOL_DT_NORMAL: number;
+    GGWAVE_PROTOCOL_DT_FAST: number;
+    GGWAVE_PROTOCOL_DT_FASTEST: number;
   };
 }
 
@@ -117,8 +124,8 @@ export async function initGgwave(): Promise<GgwaveContext> {
       // Select protocol based on type
       const protocolId =
         protocol === "ultrasonic"
-          ? ggwaveModule.TxProtocolId.GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL
-          : ggwaveModule.TxProtocolId.GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL;
+          ? ggwaveModule.ProtocolId.GGWAVE_PROTOCOL_ULTRASOUND_NORMAL
+          : ggwaveModule.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_NORMAL;
 
       // Encode message to PCM samples (volume 10 = 10%)
       const samples = encoderInstance.encode(message, protocolId, 10);
