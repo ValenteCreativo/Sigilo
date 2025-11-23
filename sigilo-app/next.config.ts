@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
     // ggwave uses fs module which is not available in browser
-    // Mark it as external for server and provide empty fallback for client
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

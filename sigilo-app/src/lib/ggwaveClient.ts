@@ -1,11 +1,31 @@
 /**
  * ggwave Client Wrapper
  * Encapsulates ggwave WASM initialization and provides clean encode/decode APIs
+ * Uses CDN loading to avoid webpack bundling issues with WASM
  */
 
-import type { GgwaveModule, GgwaveInstance } from "ggwave";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type ProtocolType = "audible" | "ultrasonic";
+
+// CDN URL for ggwave
+const GGWAVE_CDN_URL = "https://cdn.jsdelivr.net/npm/ggwave@0.4.2/ggwave.js";
+
+// Type definitions (since we're loading from CDN)
+interface GgwaveModule {
+  getDefaultParameters(): any;
+  init(params: any): GgwaveInstance;
+  TxProtocolId: {
+    GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL: number;
+    GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL: number;
+  };
+}
+
+interface GgwaveInstance {
+  encode(message: string, protocol: number, volume: number): Float32Array;
+  decode(samples: Float32Array): string | null;
+  free(): void;
+}
 
 export interface GgwaveContext {
   /**
@@ -167,12 +187,39 @@ export async function initGgwave(): Promise<GgwaveContext> {
 }
 
 /**
+ * Load ggwave script from CDN
+ */
+function loadGgwaveScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if ((window as any).ggwave) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = GGWAVE_CDN_URL;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load ggwave from CDN"));
+    document.head.appendChild(script);
+  });
+}
+
+/**
  * Load the ggwave WASM module
  */
 async function loadGgwaveModule(): Promise<GgwaveModule> {
-  // Dynamic import for the ggwave module
-  const ggwave = (await import("ggwave")).default;
-  const module = await ggwave();
+  // Load script from CDN first
+  await loadGgwaveScript();
+
+  // Get the ggwave factory from global scope and initialize
+  const ggwaveFactory = (window as any).ggwave;
+  if (!ggwaveFactory) {
+    throw new Error("ggwave not available after script load");
+  }
+
+  const module = await ggwaveFactory();
   return module;
 }
 
