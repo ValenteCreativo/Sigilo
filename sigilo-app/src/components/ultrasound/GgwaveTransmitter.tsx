@@ -27,9 +27,11 @@ export function GgwaveTransmitter() {
   const [protocol, setProtocol] = useState<ProtocolType>("ultrasonic");
   const [status, setStatus] = useState<TransmitterStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [looping, setLooping] = useState(false);
 
   const { loading: ggwaveLoading, error: ggwaveError } = useGgwave();
   const ggwaveRef = useRef<GgwaveContext | null>(null);
+  const loopTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (ggwaveError) {
@@ -38,21 +40,20 @@ export function GgwaveTransmitter() {
     }
   }, [ggwaveError]);
 
+  // Clean up loop timer on unmount
+  useEffect(() => {
+    return () => {
+      if (loopTimerRef.current) {
+        clearInterval(loopTimerRef.current);
+      }
+    };
+  }, []);
+
   const initializeGgwave = useCallback(async () => {
     if (ggwaveRef.current) return ggwaveRef.current;
 
     setStatus("initializing");
     setErrorMessage(null);
-
-    if (ggwaveLoading) {
-      return null;
-    }
-
-    if (ggwaveError) {
-      setStatus("error");
-      setErrorMessage(ggwaveError.message);
-      return null;
-    }
 
     try {
       const context = await initGgwave();
@@ -94,14 +95,34 @@ export function GgwaveTransmitter() {
       setStatus("encoding");
       const samples = context.sendMessageToPCM(message, protocol);
 
-      // Play the audio
-      setStatus("playing");
-      await playPCM(samples, context.getSampleRate());
+      const playOnce = async () => {
+        setStatus("playing");
+        await playPCM(samples, context.getSampleRate());
+      };
 
-      setStatus("done");
+      const stopLoop = () => {
+        if (loopTimerRef.current) {
+          clearInterval(loopTimerRef.current);
+          loopTimerRef.current = null;
+        }
+        setLooping(false);
+        setStatus("done");
+        setTimeout(() => setStatus("ready"), 1200);
+        window.removeEventListener("ggwave:received", onReceived);
+      };
 
-      // Reset to ready after a brief delay
-      setTimeout(() => setStatus("ready"), 2000);
+      const onReceived = () => stopLoop();
+
+      const startLoop = async () => {
+        setLooping(true);
+        await playOnce();
+        loopTimerRef.current = setInterval(() => {
+          void playOnce();
+        }, 1200);
+        window.addEventListener("ggwave:received", onReceived, { once: true });
+      };
+
+      await startLoop();
     } catch (error) {
       setStatus("error");
       setErrorMessage(
@@ -124,7 +145,10 @@ export function GgwaveTransmitter() {
       case "encoding":
         return { text: "Encoding message...", color: "text-amber-400" };
       case "playing":
-        return { text: "Playing signal...", color: "text-blue-400" };
+        return {
+          text: looping ? "Transmitting (looping)..." : "Playing signal...",
+          color: "text-blue-400",
+        };
       case "done":
         return { text: "Signal sent!", color: "text-green-400" };
       case "error":

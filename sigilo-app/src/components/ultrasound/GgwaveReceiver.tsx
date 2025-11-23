@@ -94,6 +94,7 @@ export function GgwaveReceiver() {
 
   const processDecodedMessage = useCallback((message: string) => {
     setLastMessage(message);
+    window.dispatchEvent(new CustomEvent("ggwave:received", { detail: message }));
 
     // Check if it's an emergency message
     const isEmergency = message.startsWith("EMERGENCY:");
@@ -128,17 +129,6 @@ export function GgwaveReceiver() {
   const startListening = useCallback(async () => {
     setErrorMessage(null);
     setTxStatus("idle");
-
-    if (ggwaveLoading) {
-      setStatus("initializing");
-      return;
-    }
-
-    if (ggwaveError) {
-      setStatus("error");
-      setErrorMessage(ggwaveError.message);
-      return;
-    }
 
     try {
       // Initialize ggwave if needed
