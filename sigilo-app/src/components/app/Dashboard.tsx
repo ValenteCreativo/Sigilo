@@ -122,6 +122,8 @@ export function Dashboard({
     evvm: false,
     filecoin: false,
   });
+  const [isVerifyingWithVLayer, setIsVerifyingWithVLayer] = useState(false);
+  const [vLayerError, setVLayerError] = useState<string | null>(null);
   const { open } = useAppKit();
   const {
     isConnected,
@@ -158,6 +160,30 @@ export function Dashboard({
     const file = e.target.files?.[0];
     if (file) {
       setEvidenceFileName(file.name);
+    }
+  };
+
+  const handleVerifyWithVLayer = async () => {
+    setVLayerError(null);
+    setIsVerifyingWithVLayer(true);
+    try {
+      const res = await fetch("/api/vlayer/prove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`vLayer prove failed (${res.status}): ${text}`);
+      }
+      const json = await res.json();
+      console.log("vLayer proof result", json);
+      onVerifyRole();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "vLayer verification failed";
+      setVLayerError(message);
+    } finally {
+      setIsVerifyingWithVLayer(false);
     }
   };
 
@@ -399,9 +425,24 @@ export function Dashboard({
                   </span>
                 </Badge>
               ) : (
-                <Button variant="secondary" size="sm" onClick={onVerifyRole}>
-                  Verify role with vLayer
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleVerifyWithVLayer}
+                    isLoading={isVerifyingWithVLayer}
+                  >
+                    Verify role with vLayer
+                  </Button>
+                  {vLayerError && (
+                    <p className="text-xs text-sigilo-red">{vLayerError}</p>
+                  )}
+                  {!vLayerError && (
+                    <p className="text-xs text-sigilo-text-muted">
+                      This hits our `/api/vlayer/prove` endpoint to call vLayer&apos;s Web Prover.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
