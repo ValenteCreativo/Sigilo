@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Report } from "@/types";
 import { Calculator, Dashboard, AppShell } from "@/components/app";
 import { Modal, Button } from "@/components/ui";
@@ -149,6 +149,22 @@ export default function AppPage() {
       status: "Stored",
     };
     setReports((prev) => [newReport, ...prev]);
+
+    // Persist latest report for the forum page (client-side only)
+    if (typeof window !== "undefined") {
+      const forumPayload = {
+        id: newReport.id,
+        role: newReport.role,
+        description: newReport.description,
+        status: newReport.status,
+        cid: newReport.cid,
+        createdAt: newReport.createdAt,
+        location: "User submission",
+        methods: ["vLayer zkTLS", "Filecoin", "EVVM anchor"],
+        riskTags: ["user-submitted"],
+      };
+      window.localStorage.setItem("sigilo.latestReport", JSON.stringify(forumPayload));
+    }
   };
 
   // Handle lock

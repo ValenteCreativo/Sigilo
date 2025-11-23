@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Role, ReportStatus } from "@/lib/types";
+import { useState, useMemo, useEffect } from "react";
+import { Role, ReportStatus, type Report } from "@/lib/types";
 import { mockReports } from "@/lib/mockReports";
 import { ObsidianNetwork, ReportList, MethodPill } from "@/components/forum";
 import { AppShell } from "@/components/app";
@@ -13,9 +13,28 @@ export default function ForumPage() {
   const [statusFilter, setStatusFilter] = useState<ReportStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [latestReport, setLatestReport] = useState<Report | null>(null);
+
+  // Pull the latest report saved by the dashboard (local-only bridge)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem("sigilo.latestReport");
+      if (stored) {
+        const parsed = JSON.parse(stored) as Report;
+        setLatestReport(parsed);
+      }
+    } catch (error) {
+      console.warn("Could not load latest report for forum:", error);
+    }
+  }, []);
 
   const filteredReports = useMemo(() => {
-    return mockReports.filter((report) => {
+    const combined = latestReport
+      ? [latestReport, ...mockReports.filter((r) => r.id !== latestReport.id)]
+      : mockReports;
+
+    return combined.filter((report) => {
       // Role filter
       if (roleFilter !== "All" && report.role !== roleFilter) return false;
 
@@ -32,7 +51,7 @@ export default function ForumPage() {
 
       return true;
     });
-  }, [roleFilter, statusFilter, search]);
+  }, [roleFilter, statusFilter, search, latestReport]);
 
   const roles: (Role | "All")[] = ["All", "Journalist", "Public official", "Citizen"];
   const statuses: (ReportStatus | "All")[] = ["All", "Pending", "Stored", "Verified"];
