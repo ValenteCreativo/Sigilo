@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui";
 import {
@@ -9,6 +9,7 @@ import {
   type GgwaveContext,
   type ProtocolType,
 } from "@/lib/ggwaveClient";
+import { useGgwave } from "@/hooks/useGgwave";
 
 type TransmitterStatus =
   | "idle"
@@ -27,13 +28,31 @@ export function GgwaveTransmitter() {
   const [status, setStatus] = useState<TransmitterStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const { loading: ggwaveLoading, error: ggwaveError } = useGgwave();
   const ggwaveRef = useRef<GgwaveContext | null>(null);
+
+  useEffect(() => {
+    if (ggwaveError) {
+      setStatus("error");
+      setErrorMessage(ggwaveError.message);
+    }
+  }, [ggwaveError]);
 
   const initializeGgwave = useCallback(async () => {
     if (ggwaveRef.current) return ggwaveRef.current;
 
     setStatus("initializing");
     setErrorMessage(null);
+
+    if (ggwaveLoading) {
+      return null;
+    }
+
+    if (ggwaveError) {
+      setStatus("error");
+      setErrorMessage(ggwaveError.message);
+      return null;
+    }
 
     try {
       const context = await initGgwave();
@@ -96,7 +115,10 @@ export function GgwaveTransmitter() {
       case "idle":
         return { text: "Ready to initialize", color: "text-sigilo-text-muted" };
       case "initializing":
-        return { text: "Initializing ggwave...", color: "text-amber-400" };
+        return {
+          text: ggwaveLoading ? "Loading audio engine..." : "Initializing ggwave...",
+          color: "text-amber-400",
+        };
       case "ready":
         return { text: "Ready to transmit", color: "text-sigilo-teal" };
       case "encoding":
@@ -197,8 +219,15 @@ export function GgwaveTransmitter() {
       {/* Send Button */}
       <Button
         onClick={handleSend}
-        disabled={status === "encoding" || status === "playing" || status === "initializing"}
-        isLoading={status === "encoding" || status === "playing" || status === "initializing"}
+        disabled={
+          status === "encoding" ||
+          status === "playing" ||
+          status === "initializing" ||
+          ggwaveLoading
+        }
+        isLoading={
+          status === "encoding" || status === "playing" || status === "initializing" || ggwaveLoading
+        }
         className="w-full"
       >
         {status === "playing" ? (

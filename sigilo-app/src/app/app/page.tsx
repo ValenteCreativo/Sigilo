@@ -6,9 +6,11 @@ import { Calculator, Dashboard, AppShell } from "@/components/app";
 import { Modal, Button } from "@/components/ui";
 import { useAuth } from "@/contexts";
 import { initGgwave, playPCM, type GgwaveContext } from "@/lib/ggwaveClient";
+import { useGgwave } from "@/hooks/useGgwave";
 
 export default function AppPage() {
   const { isAuthenticated, isRoleVerified, hasPin, authenticate, createPin, lock, verifyRole } = useAuth();
+  const { loading: ggwaveLoading, error: ggwaveError } = useGgwave();
 
   // Local report state
   const [reports, setReports] = useState<Report[]>([]);
@@ -41,6 +43,17 @@ export default function AppPage() {
 
     setIsEmergencyActive(true);
     const emergencyMessage = "EMERGENCY:HELP IM IN DANGER";
+
+    if (ggwaveLoading) {
+      setIsEmergencyActive(false);
+      return;
+    }
+
+    if (ggwaveError) {
+      console.error("Emergency signal failed:", ggwaveError);
+      setIsEmergencyActive(false);
+      return;
+    }
 
     try {
       // Initialize ggwave if needed

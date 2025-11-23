@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui";
 import { initGgwave, type GgwaveContext, type GgwaveDecoder } from "@/lib/ggwaveClient";
+import { useGgwave } from "@/hooks/useGgwave";
 
 type ReceiverStatus =
   | "idle"
@@ -38,6 +39,7 @@ export function GgwaveReceiver() {
   const [txStatus, setTxStatus] = useState<TransactionStatus>("idle");
   const [messageLog, setMessageLog] = useState<DecodedMessage[]>([]);
 
+  const { loading: ggwaveLoading, error: ggwaveError } = useGgwave();
   const ggwaveRef = useRef<GgwaveContext | null>(null);
   const decoderRef = useRef<GgwaveDecoder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -83,6 +85,13 @@ export function GgwaveReceiver() {
     };
   }, [stopListening]);
 
+  useEffect(() => {
+    if (ggwaveError) {
+      setStatus("error");
+      setErrorMessage(ggwaveError.message);
+    }
+  }, [ggwaveError]);
+
   const processDecodedMessage = useCallback((message: string) => {
     setLastMessage(message);
 
@@ -119,6 +128,17 @@ export function GgwaveReceiver() {
   const startListening = useCallback(async () => {
     setErrorMessage(null);
     setTxStatus("idle");
+
+    if (ggwaveLoading) {
+      setStatus("initializing");
+      return;
+    }
+
+    if (ggwaveError) {
+      setStatus("error");
+      setErrorMessage(ggwaveError.message);
+      return;
+    }
 
     try {
       // Initialize ggwave if needed
@@ -239,7 +259,10 @@ export function GgwaveReceiver() {
       <Button
         onClick={status === "listening" ? stopListening : startListening}
         variant={status === "listening" ? "danger" : "primary"}
-        isLoading={status === "initializing" || status === "requesting_permission"}
+        disabled={ggwaveLoading}
+        isLoading={
+          status === "initializing" || status === "requesting_permission" || ggwaveLoading
+        }
         className="w-full"
       >
         {status === "listening" ? (
