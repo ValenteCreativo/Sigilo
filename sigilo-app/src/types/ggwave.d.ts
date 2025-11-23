@@ -25,8 +25,8 @@ declare module "ggwave" {
       data: string | Uint8Array,
       protocolId: number,
       volume: number
-    ) => Int8Array;
-    decode: (instance: number, samples: Int8Array) => Int8Array | null;
+    ) => Int8Array | Float32Array;
+    decode: (instance: number, samples: Int8Array | Float32Array) => Int8Array | null;
     free: (pointer: number) => void;
     SampleFormat: {
       GGWAVE_SAMPLE_FORMAT_UNDEFINED: unknown;
@@ -46,6 +46,18 @@ declare module "ggwave" {
       GGWAVE_PROTOCOL_DT_NORMAL: number;
       GGWAVE_PROTOCOL_DT_FAST: number;
       GGWAVE_PROTOCOL_DT_FASTEST: number;
+      [key: string]: number;
+    };
+    TxProtocolId: {
+      GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL: number;
+      GGWAVE_TX_PROTOCOL_AUDIBLE_FAST: number;
+      GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST: number;
+      GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL: number;
+      GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST: number;
+      GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST: number;
+      GGWAVE_TX_PROTOCOL_DT_NORMAL: number;
+      GGWAVE_TX_PROTOCOL_DT_FAST: number;
+      GGWAVE_TX_PROTOCOL_DT_FASTEST: number;
       [key: string]: number;
     };
   }
