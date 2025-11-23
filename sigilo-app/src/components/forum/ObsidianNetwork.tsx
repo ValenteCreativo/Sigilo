@@ -46,7 +46,7 @@ export function ObsidianNetwork({ reports, selectedId, onSelect }: ObsidianNetwo
   const containerRef = useRef<HTMLDivElement>(null);
   const nodesRef = useRef<Node[]>([]);
   const linksRef = useRef<Link[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(undefined);
   const [hoveredNode, setHoveredNode] = useState<Node | null>(null);
   const [dimensions, setDimensions] = useState({ width: 600, height: 400 });
   const isDraggingRef = useRef(false);
