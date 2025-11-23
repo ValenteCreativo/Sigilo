@@ -34,6 +34,13 @@ const techPartners: TechPartner[] = [
     role: "Protocol R&D",
   },
   {
+    name: "GGWave",
+    logo: "/GGWave.png",
+    description:
+      "Offline acoustic relays carry encrypted alerts when internet is blocked.",
+    role: "Offline Transmission",
+  },
+  {
     name: "Filecoin",
     logo: "/Filecoin.png",
     description:
@@ -56,13 +63,6 @@ const techPartners: TechPartner[] = [
       "Mixnet routing strips network metadata making surveillance significantly harder.",
     role: "Network Privacy",
     planned: true,
-  },
-  {
-    name: "GGWave",
-    logo: "/GGWave.png",
-    description:
-      "Offline acoustic relays carry encrypted alerts when internet is blocked.",
-    role: "Offline Transmission",
   },
   {
     name: "ml5.js",
