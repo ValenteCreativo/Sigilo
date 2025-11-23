@@ -15,46 +15,60 @@ const techPartners: TechPartner[] = [
   {
     name: "EVVM",
     logo: "/EVVM.png",
-    description: "Virtual chains isolate each submission in its own blockchain running inside a smart contract, minimizing on-chain footprint.",
+    description:
+      "Virtual chains isolate each submission in its own blockchain running inside a smart contract, minimizing on-chain footprint.",
     role: "Isolated Virtual Chains",
   },
   {
     name: "vLayer",
     logo: "/VLayer.png",
-    description: "zkTLS proofs verify you're a journalist, official, or citizen without revealing your identity or credentials.",
+    description:
+      "zkTLS proofs verify you're a journalist, official, or citizen without revealing your identity or credentials.",
     role: "Zero-Knowledge Identity",
+  },
+  {
+    name: "Protocol Labs",
+    logo: "/ProtocolLabs.png",
+    description:
+      "Open-source R&D lab behind IPFS, Filecoin, and other protocols for resilient, censorship-resistant data infrastructure.",
+    role: "Protocol R&D",
   },
   {
     name: "Filecoin",
     logo: "/Filecoin.png",
-    description: "Encrypted evidence stored on a decentralized network with no single point of failure or subpoena risk.",
+    description:
+      "Encrypted evidence stored on a decentralized network with no single point of failure or subpoena risk.",
     role: "Decentralized Storage",
+    planned: true,
   },
   {
     name: "Aztec",
     logo: "/Aztec.png",
-    description: "Privacy-first L2 for confidential on-chain interactions and hardened transaction traces.",
+    description:
+      "Privacy-first L2 for confidential on-chain interactions and hardened transaction traces.",
     role: "Privacy Layer 2",
     planned: true,
   },
   {
     name: "Nym",
     logo: "/Nym.png",
-    description: "Mixnet routing strips network metadata making surveillance significantly harder.",
+    description:
+      "Mixnet routing strips network metadata making surveillance significantly harder.",
     role: "Network Privacy",
     planned: true,
   },
   {
     name: "GGWave",
     logo: "/GGWave.png",
-    description: "Offline acoustic relays carry encrypted alerts when internet is blocked.",
+    description:
+      "Offline acoustic relays carry encrypted alerts when internet is blocked.",
     role: "Offline Transmission",
-    planned: true,
   },
   {
     name: "ml5.js",
     logo: "/ml5-js.png",
-    description: "On-device AI detects safewords to trigger recording without touching the screen.",
+    description:
+      "On-device AI detects safewords to trigger recording without touching the screen.",
     role: "Voice Detection",
     planned: true,
   },
@@ -70,7 +84,9 @@ export function TechCarousel() {
   }, []);
 
   const prevSlide = useCallback(() => {
-    setActiveIndex((prev) => (prev - 1 + techPartners.length) % techPartners.length);
+    setActiveIndex(
+      (prev) => (prev - 1 + techPartners.length) % techPartners.length,
+    );
   }, []);
 
   useEffect(() => {
@@ -91,7 +107,8 @@ export function TechCarousel() {
           Powered by cutting-edge technology
         </h2>
         <p className="text-sigilo-text-secondary text-center mb-12 max-w-2xl mx-auto">
-          Each layer in our stack addresses a specific attack vector, creating multiple shields around your identity.
+          Each layer in our stack addresses a specific attack vector, creating
+          multiple shields around your identity.
         </p>
 
         {/* Main carousel area */}
@@ -148,8 +165,18 @@ export function TechCarousel() {
                   className="p-3 rounded-full glass hover:bg-sigilo-teal/20 transition-colors"
                   aria-label="Previous technology"
                 >
-                  <svg className="w-5 h-5 text-sigilo-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="w-5 h-5 text-sigilo-teal"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
                 <button
@@ -157,23 +184,62 @@ export function TechCarousel() {
                   className="p-3 rounded-full glass hover:bg-sigilo-teal/20 transition-colors"
                   aria-label="Next technology"
                 >
-                  <svg className="w-5 h-5 text-sigilo-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="w-5 h-5 text-sigilo-teal"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
                 <button
                   onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                  className={`p-3 rounded-full glass transition-colors ${isAutoPlaying ? 'bg-sigilo-teal/20' : ''}`}
-                  aria-label={isAutoPlaying ? "Pause autoplay" : "Start autoplay"}
+                  className={`p-3 rounded-full glass transition-colors ${
+                    isAutoPlaying ? "bg-sigilo-teal/20" : ""
+                  }`}
+                  aria-label={
+                    isAutoPlaying ? "Pause autoplay" : "Start autoplay"
+                  }
                 >
                   {isAutoPlaying ? (
-                    <svg className="w-5 h-5 text-sigilo-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-sigilo-teal"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-sigilo-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-sigilo-teal"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   )}
                 </button>
@@ -189,9 +255,10 @@ export function TechCarousel() {
                 onClick={() => setActiveIndex(index)}
                 className={`
                   relative p-3 rounded-xl transition-all duration-300 group
-                  ${index === activeIndex
-                    ? 'glass-strong scale-110 glow-teal'
-                    : 'glass hover:scale-105 opacity-60 hover:opacity-100'
+                  ${
+                    index === activeIndex
+                      ? "glass-strong scale-110 glow-teal"
+                      : "glass hover:scale-105 opacity-60 hover:opacity-100"
                   }
                 `}
               >
@@ -223,9 +290,10 @@ export function TechCarousel() {
                 onClick={() => setActiveIndex(index)}
                 className={`
                   h-1.5 rounded-full transition-all duration-300
-                  ${index === activeIndex
-                    ? 'w-8 bg-sigilo-teal'
-                    : 'w-1.5 bg-sigilo-border hover:bg-sigilo-teal/50'
+                  ${
+                    index === activeIndex
+                      ? "w-8 bg-sigilo-teal"
+                      : "w-1.5 bg-sigilo-border hover:bg-sigilo-teal/50"
                   }
                 `}
                 aria-label={`Go to slide ${index + 1}`}
