@@ -1,30 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button, Badge } from "@/components/ui";
 import { EncryptedText } from "@/components/effects";
-
-// Shield icon that animates
-const AnimatedShield = () => (
-  <div className="relative inline-block">
-    <svg
-      className="w-16 h-16 md:w-20 md:h-20 text-sigilo-teal animate-pulse-slow"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-      />
-    </svg>
-    {/* Glow effect */}
-    <div className="absolute inset-0 blur-xl bg-sigilo-teal/20 rounded-full animate-pulse" />
-  </div>
-);
 
 export function Hero() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -68,9 +48,19 @@ export function Hero() {
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto text-center">
-        {/* Animated Shield */}
-        <div className="mb-6">
-          <AnimatedShield />
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <div className="absolute -inset-4 bg-sigilo-teal/10 blur-3xl rounded-full" />
+            <Image
+              src="/Logo-SIGILO-White.png"
+              alt="Sigilo logo"
+              width={160}
+              height={160}
+              priority
+              className="relative drop-shadow-lg"
+            />
+          </div>
         </div>
 
         {/* Logo with encrypted effect */}
