@@ -24,7 +24,7 @@ const MAX_MESSAGE_LENGTH = 120;
 
 export function GgwaveTransmitter() {
   const [message, setMessage] = useState("");
-  const [protocol, setProtocol] = useState<ProtocolType>("ultrasonic");
+  const [protocol, setProtocol] = useState<ProtocolType>("audible");
   const [status, setStatus] = useState<TransmitterStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [looping, setLooping] = useState(false);

@@ -164,8 +164,8 @@ export function GgwaveReceiver() {
       const source = audioContext.createMediaStreamSource(stream);
 
       // Create script processor for audio processing
-      // Using 4096 buffer size for better performance
-      const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+      // Use 1024 buffer to align with ggwave frame size
+      const scriptProcessor = audioContext.createScriptProcessor(1024, 1, 1);
       scriptProcessorRef.current = scriptProcessor;
 
       // Process audio samples

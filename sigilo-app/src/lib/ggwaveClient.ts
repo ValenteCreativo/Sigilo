@@ -54,7 +54,7 @@ export interface GgwaveDecoder {
 
 export const SAMPLE_RATE = 48000;
 const SAMPLES_PER_FRAME = 1024;
-const DEFAULT_VOLUME = 10;
+const DEFAULT_VOLUME = 15;
 
 const textDecoder = new TextDecoder();
 
@@ -153,8 +153,8 @@ export async function initGgwave(): Promise<GgwaveContext> {
               return bytesToString(decoded);
             }
 
-            // Trim runaway buffers to roughly two seconds of audio
-            const maxBuffered = SAMPLE_RATE * 2;
+            // Trim runaway buffers to roughly five seconds of audio
+            const maxBuffered = SAMPLE_RATE * 5;
             if (sampleBuffer.length > maxBuffered) {
               sampleBuffer = sampleBuffer.slice(sampleBuffer.length - maxBuffered);
             }
