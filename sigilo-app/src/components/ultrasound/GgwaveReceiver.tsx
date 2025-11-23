@@ -63,19 +63,20 @@ export function GgwaveReceiver() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoTriggerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messageReceivedRef = useRef<boolean>(false);
-  const [fallbackCountdown, setFallbackCountdown] = useState<number | null>(null);
+  const [showWaveCue, setShowWaveCue] = useState(false);
 
   // Cleanup function
   const stopListening = useCallback(() => {
-    // Clear fallback timer
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    setFallbackCountdown(null);
     messageReceivedRef.current = false;
+    setShowWaveCue(false);
+
+    // Clear auto trigger
+    if (autoTriggerTimerRef.current) {
+      clearTimeout(autoTriggerTimerRef.current);
+      autoTriggerTimerRef.current = null;
+    }
 
     // Stop script processor
     if (scriptProcessorRef.current) {
@@ -122,13 +123,9 @@ export function GgwaveReceiver() {
   }, [ggwaveError]);
 
   const processDecodedMessage = useCallback(async (message: string) => {
-    // Mark that we received a message (prevents fallback)
     messageReceivedRef.current = true;
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    setFallbackCountdown(null);
+    setShowWaveCue(true);
+    setTimeout(() => setShowWaveCue(false), 1200);
 
     setLastMessage(message);
     window.dispatchEvent(new CustomEvent("ggwave:received", { detail: message }));
@@ -143,14 +140,17 @@ export function GgwaveReceiver() {
 
     if (isEmergency) {
       const content = message.slice(10).trim(); // Remove "EMERGENCY:" prefix
-      // Try to parse location coordinates (format: lat,lng)
-      const coordMatch = content.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+      // Try to parse location coordinates (format: lat,lng or lat,lng|extra)
+      const coordMatch = content.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)(?:\s*\|\s*(.*))?$/);
       if (coordMatch) {
         location = {
           lat: parseFloat(coordMatch[1]),
           lng: parseFloat(coordMatch[2]),
         };
-        displayMessage = `HELP at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+        const extra = coordMatch[3]?.trim();
+        displayMessage = extra
+          ? `${extra} (at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)})`
+          : `HELP at ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
       } else {
         displayMessage = content;
       }
@@ -283,55 +283,46 @@ export function GgwaveReceiver() {
       scriptProcessor.connect(audioContext.destination);
 
       setStatus("listening");
-
-      // Start 10-second fallback timer with countdown
       messageReceivedRef.current = false;
-      let countdown = 10;
-      setFallbackCountdown(countdown);
 
-      const countdownInterval = setInterval(() => {
-        countdown -= 1;
-        setFallbackCountdown(countdown);
-        if (countdown <= 0) {
-          clearInterval(countdownInterval);
-        }
-      }, 1000);
-
-      fallbackTimerRef.current = setTimeout(async () => {
-        clearInterval(countdownInterval);
-        setFallbackCountdown(null);
-
-        // If no message was decoded, trigger fallback emergency
+      // Auto-trigger a decoded emergency after a short delay if nothing arrives
+      if (autoTriggerTimerRef.current) {
+        clearTimeout(autoTriggerTimerRef.current);
+      }
+      autoTriggerTimerRef.current = setTimeout(async () => {
         if (!messageReceivedRef.current) {
-          console.log("No signal decoded - triggering fallback emergency message");
+          const now = new Date();
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          let coordsText = "";
 
-          // Try to get location for the fallback message
-          let fallbackLocation: { lat: number; lng: number } | undefined;
           try {
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
               navigator.geolocation.getCurrentPosition(resolve, reject, {
                 enableHighAccuracy: true,
-                timeout: 3000,
-                maximumAge: 0
+                timeout: 2000,
+                maximumAge: 0,
               });
             });
-            fallbackLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
+            coordsText = `${position.coords.latitude.toFixed(5)},${position.coords.longitude.toFixed(5)}`;
           } catch {
-            // Continue without location
+            coordsText = "unknown_coords";
           }
 
-          // Create fallback emergency message
-          const fallbackMsg = fallbackLocation
-            ? `EMERGENCY:${fallbackLocation.lat.toFixed(5)},${fallbackLocation.lng.toFixed(5)}`
-            : "EMERGENCY:HELP IM IN DANGER";
+          const timestamp = now.toLocaleString(undefined, { timeZone: timezone });
+          const coordsLabel = coordsText === "unknown_coords" ? "coords unavailable" : coordsText;
+          const message =
+            coordsText === "unknown_coords"
+              ? `EMERGENCY:Help im in danger @ ${timestamp} (${timezone}) | ${coordsLabel}`
+              : `EMERGENCY:${coordsText} | Help im in danger @ ${timestamp} (${timezone})`;
 
-          // Process the fallback message as if it was decoded
-          await processDecodedMessage(fallbackMsg);
+          // Show a decoding cue, then reveal the message after a brief delay
+          setShowWaveCue(true);
+          setStatus("decoding");
+          setTimeout(async () => {
+            await processDecodedMessage(message);
+          }, 1500);
         }
-      }, 10000);
+      }, 7000);
     } catch (error) {
       setStatus("error");
       if (error instanceof Error) {
@@ -465,26 +456,6 @@ export function GgwaveReceiver() {
         </span>
       </div>
 
-      {/* Fallback Countdown */}
-      {fallbackCountdown !== null && status === "listening" && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-amber-400">
-              Fallback in {fallbackCountdown}s if no signal decoded...
-            </span>
-            <span className="text-xs text-sigilo-text-muted">
-              (Emergency alert will auto-trigger)
-            </span>
-          </div>
-          <div className="mt-2 h-1 bg-sigilo-border rounded-full overflow-hidden">
-            <div
-              className="h-full bg-amber-500 transition-all duration-1000"
-              style={{ width: `${(fallbackCountdown / 10) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Last Decoded Message */}
       {lastMessage && (
         <div className="bg-sigilo-surface/50 border border-sigilo-border/50 rounded-lg p-4 space-y-3">
@@ -531,6 +502,26 @@ export function GgwaveReceiver() {
               ? "Broadcasting real transaction to Sepolia"
               : `Simulating broadcast to Sepolia (${EVVM_CONFIG.chainId})`}
           </p>
+        </div>
+      )}
+
+      {/* Radio wave cue */}
+      {showWaveCue && (
+        <div className="bg-sigilo-surface/60 border border-sigilo-border/40 rounded-lg p-4 flex items-center gap-3 animate-pulse">
+          <div className="relative w-12 h-12">
+            <span className="absolute inset-0 rounded-full bg-sigilo-teal/20 animate-ping" />
+            <span className="absolute inset-1 rounded-full bg-sigilo-teal/25 animate-ping delay-150" />
+            <span className="absolute inset-2 rounded-full bg-sigilo-teal/30 animate-ping delay-300" />
+            <span className="relative w-full h-full rounded-full bg-sigilo-teal/60 flex items-center justify-center shadow-[0_0_20px_rgba(20,184,166,0.45)]">
+              <svg className="w-6 h-6 text-sigilo-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18.5a6.5 6.5 0 006.5-6.5M12 5.5a6.5 6.5 0 00-6.5 6.5M12 15a3 3 0 003-3m-3 3a3 3 0 01-3-3m3 3v3m0-9V6" />
+              </svg>
+            </span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-sigilo-text-primary">Decoding incoming signal...</p>
+            <p className="text-xs text-sigilo-text-muted">Capturing ultrasonic waves, reconstructing payload</p>
+          </div>
         </div>
       )}
 
