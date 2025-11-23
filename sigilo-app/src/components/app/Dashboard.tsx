@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useAppKit } from "@reown/appkit/react";
+import { useChainId, useSwitchChain } from "wagmi";
 import { DashboardProps, ReportRole, Report } from "@/types";
 import { Button, Badge } from "@/components/ui";
 import { DashboardCard } from "./DashboardCard";
 import { EncryptionProgress } from "./EncryptionProgress";
-import {
-  simulateEncryption,
-  simulateZKProof,
-  simulateEVVMSubmission,
-  generateCID,
-} from "@/lib/crypto";
+import { simulateEncryption, simulateZKProof, generateCID } from "@/lib/crypto";
+import { useEVVM } from "@/hooks/useEVVM";
+import { EVVM_CONFIG } from "@/lib/evvm";
 
 // Processing state interface
 interface ProcessingState {
@@ -114,6 +113,7 @@ export function Dashboard({
   const [description, setDescription] = useState("");
   const [evidenceFileName, setEvidenceFileName] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [sessionId] = useState(() => generateSessionId());
   const [processingState, setProcessingState] = useState<ProcessingState | null>(null);
   const [protectionLayers, setProtectionLayers] = useState({
@@ -122,7 +122,23 @@ export function Dashboard({
     evvm: false,
     filecoin: false,
   });
+  const { open } = useAppKit();
+  const {
+    isConnected,
+    submitReport,
+    isReportPending,
+    isReportConfirming,
+    reportError,
+  } = useEVVM();
+  const isConnectedRef = useRef(isConnected);
+  const chainId = useChainId();
+  const { switchChainAsync, isPending: isSwitchingChain } = useSwitchChain();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keep latest wallet connection status for async waits
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   // Activate protection layers progressively
   useEffect(() => {
@@ -145,9 +161,38 @@ export function Dashboard({
     }
   };
 
+  const ensureWalletConnection = async () => {
+    if (isConnectedRef.current) return true;
+
+    try {
+      await open();
+    } catch (error) {
+      console.warn("Wallet modal was closed or failed to open", error);
+    }
+
+    for (let i = 0; i < 20; i++) {
+      if (isConnectedRef.current) return true;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+
+    return false;
+  };
+
+  const ensureSepolia = async () => {
+    if (chainId === EVVM_CONFIG.chainId) return true;
+    try {
+      await switchChainAsync({ chainId: EVVM_CONFIG.chainId });
+      return true;
+    } catch (error) {
+      console.warn("User rejected chain switch or failed", error);
+      return false;
+    }
+  };
+
   const handleSubmitReport = async () => {
     if (!description.trim()) return;
 
+    setSubmissionError(null);
     setIsSubmitting(true);
 
     try {
@@ -185,16 +230,45 @@ export function Dashboard({
       setProcessingState({
         isProcessing: true,
         type: "submission",
-        progress: 0,
-        step: "Connecting to EVVM virtual chain...",
+        progress: 5,
+        step: isConnectedRef.current
+          ? "Preparing EVVM transaction..."
+          : "Requesting wallet connection...",
       });
 
-      const evvmResult = await simulateEVVMSubmission(
-        encryptionResult.hash,
-        (progress, step) => {
-          setProcessingState((prev) => prev ? { ...prev, progress, step } : null);
-        }
-      );
+      const walletReady = await ensureWalletConnection();
+      if (!walletReady) {
+        throw new Error("Connect a wallet to anchor the report on EVVM.");
+      }
+
+      const onSepolia = await ensureSepolia();
+      if (!onSepolia) {
+        throw new Error("Please switch to Sepolia (EVVM) to submit.");
+      }
+
+      setProcessingState({
+        isProcessing: true,
+        type: "submission",
+        progress: 40,
+        step: "Waiting for wallet signature...",
+      });
+
+      const submission = await submitReport({
+        timestamp: Date.now(),
+        message: encryptionResult.hash,
+        isEmergency: false,
+      });
+
+      if (!submission.success || !submission.txHash) {
+        throw new Error(submission.error || "EVVM submission failed");
+      }
+
+      setProcessingState({
+        isProcessing: true,
+        type: "submission",
+        progress: 85,
+        step: "Broadcasting to EVVM...",
+      });
 
       // Create the report with all security metadata
       const newReport: Omit<Report, "id" | "createdAt"> = {
@@ -203,9 +277,9 @@ export function Dashboard({
         status: "Stored",
         cid: generateCID(),
         evidenceFileName: evidenceFileName || undefined,
-        txHash: evvmResult.txHash,
-        virtualChainId: evvmResult.virtualChainId,
-        encryptedHash: encryptionResult.hash,
+        txHash: submission.txHash,
+        virtualChainId: `${EVVM_CONFIG.chainName} (${EVVM_CONFIG.chainId})`,
+        encryptedHash: submission.reportHash || encryptionResult.hash,
         zkProofId: zkResult.proof.substring(0, 16),
       };
 
@@ -214,6 +288,8 @@ export function Dashboard({
       setEvidenceFileName(null);
     } catch (error) {
       console.error("Report submission failed:", error);
+      const message = error instanceof Error ? error.message : "Report submission failed";
+      setSubmissionError(message);
     } finally {
       setProcessingState(null);
       setIsSubmitting(false);
@@ -375,6 +451,29 @@ export function Dashboard({
             >
               Encrypt & Submit report
             </Button>
+
+            <div className="mt-2 flex flex-col gap-1 text-xs">
+              <div className={`flex items-center gap-2 ${isConnected ? "text-green-400" : "text-amber-400"}`}>
+                <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400" : "bg-amber-400"}`} />
+                {isConnected ? "Wallet connected to EVVM" : "Connect wallet to anchor on-chain"}
+              </div>
+              {chainId !== EVVM_CONFIG.chainId && (
+                <span className="text-amber-400">
+                  Switch to Sepolia to avoid mainnet fees. {isSwitchingChain ? "(switching...)" : ""}
+                </span>
+              )}
+              {(isReportPending || isReportConfirming) && (
+                <span className="text-sigilo-teal">
+                  {isReportPending ? "Awaiting wallet signature..." : "Waiting for EVVM confirmation..."}
+                </span>
+              )}
+              {submissionError && (
+                <span className="text-sigilo-red">{submissionError}</span>
+              )}
+              {reportError && (
+                <span className="text-sigilo-red">{reportError.message}</span>
+              )}
+            </div>
           </DashboardCard>
 
           {/* My Reports Card */}

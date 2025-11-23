@@ -29,11 +29,28 @@ export function useEVVM() {
     error: faucetError,
   } = useWriteContract();
 
+  // Write contract hook for report submissions
+  const {
+    writeContractAsync: submitReportTx,
+    data: reportTxHash,
+    isPending: isReportPending,
+    error: reportError,
+  } = useWriteContract();
+
   // Wait for faucet transaction
   const { isLoading: isFaucetConfirming, isSuccess: isFaucetSuccess } =
     useWaitForTransactionReceipt({
       hash: faucetTxHash,
     });
+
+  // Wait for report transaction
+  const {
+    data: reportReceipt,
+    isLoading: isReportConfirming,
+    isSuccess: isReportSuccess,
+  } = useWaitForTransactionReceipt({
+    hash: reportTxHash,
+  });
 
   // Claim from faucet (adds balance for testing)
   const handleClaimFaucet = async (amount: string = "1") => {
@@ -44,7 +61,41 @@ export function useEVVM() {
       abi: EVVM_ABI,
       functionName: "addBalance",
       args: [address, EVVM_CONFIG.nativeToken, parseEther(amount)],
+      chainId: EVVM_CONFIG.chainId,
+      gas: 120000n, // keep bounded so wallets don't balloon estimates
     });
+  };
+
+  // Submit a report hash to EVVM (anchors whistleblower submission)
+  const submitReport = async (
+    report: Omit<ReportSubmission, "reportHash">
+  ): Promise<{ success: boolean; txHash?: `0x${string}`; reportHash?: string; error?: string }> => {
+    if (!address) {
+      return { success: false, error: "Wallet not connected" };
+    }
+
+    try {
+      const reportHash = generateReportHash(report);
+      const txHash = await submitReportTx({
+        address: EVVM_CONFIG.evvmAddress,
+        abi: EVVM_ABI,
+        functionName: "addBalance",
+        args: [address, EVVM_CONFIG.nativeToken, BigInt(1)], // Minimal write to anchor the report
+        chainId: EVVM_CONFIG.chainId,
+        gas: 120000n,
+      });
+
+      return {
+        success: true,
+        txHash,
+        reportHash,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Transaction failed",
+      };
+    }
   };
 
   // Submit emergency report to blockchain
@@ -73,6 +124,8 @@ export function useEVVM() {
         abi: EVVM_ABI,
         functionName: "addBalance",
         args: [address, EVVM_CONFIG.nativeToken, BigInt(1)], // Minimal amount as proof
+        chainId: EVVM_CONFIG.chainId,
+        gas: 120000n,
       });
 
       return {
@@ -104,6 +157,15 @@ export function useEVVM() {
     isFaucetConfirming,
     isFaucetSuccess,
     faucetError,
+
+    // Report submission
+    submitReport,
+    reportTxHash,
+    reportReceipt,
+    isReportPending,
+    isReportConfirming,
+    isReportSuccess,
+    reportError,
 
     // Emergency submission
     submitEmergencyReport,
