@@ -548,6 +548,26 @@ export function Dashboard({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </a>
+
+              <a
+                href="/ultrasound"
+                className="flex items-center justify-between p-3 bg-sigilo-surface/50 rounded-lg border border-sigilo-border/30 hover:bg-sigilo-surface hover:border-purple-500/30 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-sigilo-text-primary">Ultrasonic Signal</p>
+                    <p className="text-xs text-sigilo-text-muted">Sound-based offline communication</p>
+                  </div>
+                </div>
+                <svg className="w-4 h-4 text-sigilo-text-muted group-hover:text-purple-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
             </div>
           </DashboardCard>
         </div>

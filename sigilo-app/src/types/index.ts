@@ -32,6 +32,7 @@ export interface AppState {
 // Component prop types
 export interface CalculatorProps {
   onUnlockAttempt: () => void;
+  onEmergency?: () => void;
 }
 
 export interface DashboardProps {

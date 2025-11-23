@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Report } from "@/types";
 import { Calculator, Dashboard, AppShell } from "@/components/app";
 import { Modal, Button } from "@/components/ui";
 import { useAuth } from "@/contexts";
+import { initGgwave, playPCM, type GgwaveContext } from "@/lib/ggwaveClient";
 
 export default function AppPage() {
   const { isAuthenticated, isRoleVerified, hasPin, authenticate, createPin, lock, verifyRole } = useAuth();
@@ -18,6 +19,10 @@ export default function AppPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState<string | null>(null);
   const [confirmPin, setConfirmPin] = useState("");
+  const [isEmergencyActive, setIsEmergencyActive] = useState(false);
+
+  // ggwave ref for emergency signal
+  const ggwaveRef = useRef<GgwaveContext | null>(null);
 
   // Handle unlock attempt from calculator
   const handleUnlockAttempt = useCallback(() => {
@@ -29,6 +34,34 @@ export default function AppPage() {
       setShowPinModal(true);
     }
   }, [hasPin]);
+
+  // Handle emergency signal (911=)
+  const handleEmergency = useCallback(async () => {
+    if (isEmergencyActive) return;
+
+    setIsEmergencyActive(true);
+    const emergencyMessage = "EMERGENCY:HELP IM IN DANGER";
+
+    try {
+      // Initialize ggwave if needed
+      if (!ggwaveRef.current) {
+        ggwaveRef.current = await initGgwave();
+      }
+
+      // Encode and play emergency signal via ultrasound
+      const samples = ggwaveRef.current.sendMessageToPCM(emergencyMessage, "ultrasonic");
+      await playPCM(samples, ggwaveRef.current.getSampleRate());
+
+      // Play it multiple times for redundancy
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await playPCM(samples, ggwaveRef.current.getSampleRate());
+
+    } catch (error) {
+      console.error("Emergency signal failed:", error);
+    } finally {
+      setIsEmergencyActive(false);
+    }
+  }, [isEmergencyActive]);
 
   // Handle PIN submission
   const handlePinSubmit = () => {
@@ -89,7 +122,7 @@ export default function AppPage() {
     <div className="min-h-screen bg-sigilo-bg">
       {!isAuthenticated ? (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <Calculator onUnlockAttempt={handleUnlockAttempt} />
+          <Calculator onUnlockAttempt={handleUnlockAttempt} onEmergency={handleEmergency} />
         </div>
       ) : (
         <AppShell title="SIGILO">

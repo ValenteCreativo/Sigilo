@@ -13,13 +13,23 @@ type ReceiverStatus =
   | "decoding"
   | "error";
 
-type TransactionStatus = "idle" | "executed" | "error";
+type TransactionStatus = "idle" | "executed" | "error" | "emergency_executed";
 
 interface DecodedMessage {
   message: string;
   timestamp: Date;
   isTransaction: boolean;
+  isEmergency: boolean;
 }
+
+// Hardcoded emergency transaction details (would be real on-chain tx in production)
+const EMERGENCY_TX = {
+  to: "0x911EmergencyResponder...dead",
+  value: "0.001 ETH",
+  data: "EMERGENCY_ALERT_BROADCAST",
+  chainId: "EVVM-Emergency-Channel",
+  txHash: "0xemergency" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 6),
+};
 
 export function GgwaveReceiver() {
   const [status, setStatus] = useState<ReceiverStatus>("idle");
@@ -76,22 +86,31 @@ export function GgwaveReceiver() {
   const processDecodedMessage = useCallback((message: string) => {
     setLastMessage(message);
 
+    // Check if it's an emergency message
+    const isEmergency = message.startsWith("EMERGENCY:");
     // Check if it's a transaction message
-    const isTransaction = message.startsWith("TX:");
-    const txLabel = isTransaction ? message.slice(3).trim() : message;
+    const isTransaction = message.startsWith("TX:") || isEmergency;
+
+    let displayMessage = message;
+    if (isEmergency) {
+      displayMessage = message.slice(10).trim(); // Remove "EMERGENCY:" prefix
+    } else if (message.startsWith("TX:")) {
+      displayMessage = message.slice(3).trim();
+    }
 
     // Add to log
     const decodedMessage: DecodedMessage = {
-      message: txLabel,
+      message: displayMessage,
       timestamp: new Date(),
       isTransaction,
+      isEmergency,
     };
 
     setMessageLog((prev) => [decodedMessage, ...prev].slice(0, 10));
 
-    // Simulate transaction execution
-    if (isTransaction) {
-      setTxStatus("executed");
+    // Execute emergency transaction or regular transaction
+    if (isEmergency) {
+      setTxStatus("emergency_executed");
     } else {
       setTxStatus("executed");
     }
@@ -345,6 +364,59 @@ export function GgwaveReceiver() {
               Timestamp: {new Date().toLocaleTimeString()}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Emergency Transaction Card */}
+      {txStatus === "emergency_executed" && lastMessage && (
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 space-y-3 animate-pulse">
+          <div className="flex items-center gap-2">
+            <svg
+              className="w-6 h-6 text-red-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span className="text-sm font-bold text-red-400 uppercase tracking-wide">
+              🚨 Emergency Alert Received
+            </span>
+          </div>
+          <div className="bg-red-500/5 border border-red-500/20 rounded-md p-3 space-y-2">
+            <p className="text-sm text-red-300 font-semibold">
+              {lastMessage.replace("EMERGENCY:", "")}
+            </p>
+            <div className="border-t border-red-500/20 pt-2 space-y-1">
+              <p className="text-xs text-sigilo-text-secondary">
+                <span className="text-sigilo-text-muted">TX Hash:</span>{" "}
+                <span className="font-mono text-red-400">{EMERGENCY_TX.txHash}</span>
+              </p>
+              <p className="text-xs text-sigilo-text-secondary">
+                <span className="text-sigilo-text-muted">To:</span>{" "}
+                <span className="font-mono">{EMERGENCY_TX.to}</span>
+              </p>
+              <p className="text-xs text-sigilo-text-secondary">
+                <span className="text-sigilo-text-muted">Chain:</span>{" "}
+                <span className="text-amber-400">{EMERGENCY_TX.chainId}</span>
+              </p>
+              <p className="text-xs text-sigilo-text-secondary">
+                <span className="text-sigilo-text-muted">Data:</span>{" "}
+                <span className="font-mono text-red-300">{EMERGENCY_TX.data}</span>
+              </p>
+              <p className="text-xs text-green-400 font-medium pt-1">
+                ✓ Emergency broadcast submitted to EVVM network
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-sigilo-text-muted">
+            Received: {new Date().toLocaleTimeString()}
+          </p>
         </div>
       )}
 

@@ -4,8 +4,9 @@ import { useState, useCallback } from "react";
 import { CalculatorProps } from "@/types";
 
 const UNLOCK_SEQUENCE = ["+", "=", "="];
+const EMERGENCY_SEQUENCE = ["9", "1", "1", "="];
 
-export function Calculator({ onUnlockAttempt }: CalculatorProps) {
+export function Calculator({ onUnlockAttempt, onEmergency }: CalculatorProps) {
   const [display, setDisplay] = useState("0");
   const [previousValue, setPreviousValue] = useState<number | null>(null);
   const [operator, setOperator] = useState<string | null>(null);
@@ -14,6 +15,21 @@ export function Calculator({ onUnlockAttempt }: CalculatorProps) {
 
   const checkUnlockSequence = useCallback(
     (newSequence: string[]) => {
+      // Check for emergency sequence (911=)
+      const lastFour = newSequence.slice(-4);
+      if (
+        lastFour.length === 4 &&
+        lastFour[0] === EMERGENCY_SEQUENCE[0] &&
+        lastFour[1] === EMERGENCY_SEQUENCE[1] &&
+        lastFour[2] === EMERGENCY_SEQUENCE[2] &&
+        lastFour[3] === EMERGENCY_SEQUENCE[3]
+      ) {
+        onEmergency?.();
+        setButtonSequence([]);
+        return;
+      }
+
+      // Check for unlock sequence (+=+)
       const lastThree = newSequence.slice(-3);
       if (
         lastThree.length === 3 &&
@@ -25,7 +41,7 @@ export function Calculator({ onUnlockAttempt }: CalculatorProps) {
         setButtonSequence([]);
       }
     },
-    [onUnlockAttempt]
+    [onUnlockAttempt, onEmergency]
   );
 
   const handleButtonPress = useCallback(
