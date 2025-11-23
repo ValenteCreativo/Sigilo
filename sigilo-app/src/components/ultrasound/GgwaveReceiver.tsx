@@ -3,7 +3,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui";
-import { initGgwave, type GgwaveContext, type GgwaveDecoder } from "@/lib/ggwaveClient";
+import {
+  SAMPLE_RATE,
+  initGgwave,
+  type GgwaveContext,
+  type GgwaveDecoder,
+} from "@/lib/ggwaveClient";
 import { useGgwave } from "@/hooks/useGgwave";
 
 type ReceiverStatus =
@@ -149,7 +154,7 @@ export function GgwaveReceiver() {
       mediaStreamRef.current = stream;
 
       // Create audio context
-      const audioContext = new AudioContext();
+      const audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
       audioContextRef.current = audioContext;
 
       // Create decoder

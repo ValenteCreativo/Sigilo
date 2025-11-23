@@ -52,7 +52,7 @@ export interface GgwaveDecoder {
   dispose(): void;
 }
 
-const SAMPLE_RATE = 48000;
+export const SAMPLE_RATE = 48000;
 const SAMPLES_PER_FRAME = 1024;
 const DEFAULT_VOLUME = 10;
 
@@ -67,20 +67,25 @@ const ensureModule = () => {
   return ggwaveModulePromise;
 };
 
-const normalizePCM = (samples: Int8Array | Float32Array): Float32Array => {
-  if (samples instanceof Float32Array) return samples;
-  const result = new Float32Array(samples.length);
-  for (let i = 0; i < samples.length; i += 1) {
-    result[i] = samples[i] / 127;
+const int8ToFloat32 = (data: Int8Array): Float32Array => {
+  const result = new Float32Array(data.length);
+  for (let i = 0; i < data.length; i += 1) {
+    result[i] = data[i] / 127;
   }
   return result;
 };
 
-const concatFloat32 = (
-  first: Float32Array,
-  second: Float32Array
-): Float32Array => {
-  const merged = new Float32Array(first.length + second.length);
+const float32ToInt8 = (data: Float32Array): Int8Array => {
+  const result = new Int8Array(data.length);
+  for (let i = 0; i < data.length; i += 1) {
+    const clipped = Math.max(-1, Math.min(1, data[i]));
+    result[i] = Math.round(clipped * 127);
+  }
+  return result;
+};
+
+const concatInt8 = (first: Int8Array, second: Int8Array): Int8Array => {
+  const merged = new Int8Array(first.length + second.length);
   merged.set(first, 0);
   merged.set(second, first.length);
   return merged;
@@ -103,7 +108,6 @@ export async function initGgwave(): Promise<GgwaveContext> {
   const encoderParams = ggwave.getDefaultParameters();
   encoderParams.sampleRateOut = SAMPLE_RATE;
   encoderParams.samplesPerFrame = SAMPLES_PER_FRAME;
-  encoderParams.sampleFormatOut = ggwave.SampleFormat.GGWAVE_SAMPLE_FORMAT_F32;
 
   const encoderInstance = ggwave.init(encoderParams);
 
@@ -114,8 +118,8 @@ export async function initGgwave(): Promise<GgwaveContext> {
     ): Float32Array {
       const protocolId =
         protocol === "ultrasonic"
-          ? ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL
-          : ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL;
+          ? ggwave.ProtocolId.GGWAVE_PROTOCOL_ULTRASOUND_NORMAL
+          : ggwave.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_NORMAL;
 
       const encoded = ggwave.encode(
         encoderInstance,
@@ -124,31 +128,29 @@ export async function initGgwave(): Promise<GgwaveContext> {
         DEFAULT_VOLUME
       );
 
-      return normalizePCM(encoded);
+      return int8ToFloat32(encoded);
     },
 
     createDecoder(sampleRate: number): GgwaveDecoder {
       const decoderParams = ggwave.getDefaultParameters();
       decoderParams.sampleRateInp = sampleRate;
       decoderParams.samplesPerFrame = SAMPLES_PER_FRAME;
-      decoderParams.sampleFormatInp = ggwave.SampleFormat.GGWAVE_SAMPLE_FORMAT_F32;
 
       const decoderInstance = ggwave.init(decoderParams);
 
       // Buffer to accumulate PCM before feeding to the decoder
-      let sampleBuffer: Float32Array = new Float32Array(0);
+      let sampleBuffer: Int8Array = new Int8Array(0);
 
       return {
         processSamples(chunk: Float32Array): string | null {
           try {
-            sampleBuffer = concatFloat32(sampleBuffer, chunk);
+            const converted = float32ToInt8(chunk);
+            sampleBuffer = concatInt8(sampleBuffer, converted);
 
-            if (sampleBuffer.length >= SAMPLES_PER_FRAME) {
-              const decoded = ggwave.decode(decoderInstance, sampleBuffer);
-              if (decoded && decoded.length > 0) {
-                sampleBuffer = new Float32Array(0);
-                return bytesToString(decoded);
-              }
+            const decoded = ggwave.decode(decoderInstance, sampleBuffer);
+            if (decoded && decoded.length > 0) {
+              sampleBuffer = new Int8Array(0);
+              return bytesToString(decoded);
             }
 
             // Trim runaway buffers to roughly two seconds of audio
@@ -164,11 +166,11 @@ export async function initGgwave(): Promise<GgwaveContext> {
         },
 
         reset(): void {
-          sampleBuffer = new Float32Array(0);
+          sampleBuffer = new Int8Array(0);
         },
 
         dispose(): void {
-          sampleBuffer = new Float32Array(0);
+          sampleBuffer = new Int8Array(0);
           ggwave.free(decoderInstance);
         },
       };
@@ -199,7 +201,8 @@ export async function playPCM(
     throw new Error("playPCM can only be called in the browser");
   }
 
-  const normalizedSamples = normalizePCM(samples);
+  const normalizedSamples =
+    samples instanceof Float32Array ? samples : int8ToFloat32(samples);
 
   const audioContext = new AudioContext({ sampleRate });
 
